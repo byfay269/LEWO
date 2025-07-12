@@ -1467,7 +1467,7 @@ function showAdminTab(tabName, buttonElement = null) {
         case 'users':
             loadAdminUsers();
             break;
-        case 'posts':
+        cascase 'posts':
             loadAdminPosts();
             break;
         case 'mentorships':
@@ -1482,14 +1482,46 @@ function showAdminTab(tabName, buttonElement = null) {
     }
 }
 
-function loadAdminDashboard() {
-    // Charger les statistiques
-    const totalUsersEl = document.getElementById('totalUsers');
-    const totalPostsEl = document.getElementById('totalPosts');
-    const activeMentorshipsEl = document.getElementById('activeMentorships');
-    const pendingReportsEl = document.getElementById('pendingReports');
+async function loadAdminDashboard() {
+    try {
+        const response = await fetch('/api/admin/dashboard', {
+            headers: {
+                'Authorization': 'Bearer ' + getToken()
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const totalUsersEl = document.getElementById('totalUsers');
+            const totalPostsEl = document.getElementById('totalPosts');
+            const activeMentorshipsEl = document.getElementById('activeMentorships');
+            const pendingReportsEl = document.getElementById('pendingReports');
 
-    if (totalUsersEl) totalUsersEl.textContent = adminUsers.length;
+            if (totalUsersEl) totalUsersEl.textContent = data.totalUsers || 0;
+            if (totalPostsEl) totalPostsEl.textContent = data.totalPosts || 0;
+            if (activeMentorshipsEl) activeMentorshipsEl.textContent = data.activeMentorships || 0;
+            if (pendingReportsEl) pendingReportsEl.textContent = data.pendingReports || 0;
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement du dashboard:', error);
+    }
+}
+
+async function loadAdminUsers() {
+    // Cette fonction sera gérée par la page admin elle-même
+}
+
+async function loadAdminPosts() {
+    // Cette fonction sera gérée par la page admin elle-même
+}
+
+async function loadAdminMentorships() {
+    // Cette fonction sera gérée par la page admin elle-même
+}
+
+async function loadAdminReports() {
+    // Cette fonction sera gérée par la page admin elle-même
+}inUsers.length;
     if (totalPostsEl) totalPostsEl.textContent = samplePosts.length;
     if (activeMentorshipsEl) activeMentorshipsEl.textContent = adminMentorships.filter(m => m.status === 'active').length;
     if (pendingReportsEl) pendingReportsEl.textContent = adminReports.filter(r => r.status === 'pending').length;

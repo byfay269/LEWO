@@ -10,6 +10,7 @@ publicDir = "/"
 deploymentTarget = "static"
 
 [workflows]
+runButton = "Start Server"
 
 [[workflows.workflow]]
 name = "Serve static"
