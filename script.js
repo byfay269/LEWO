@@ -82,11 +82,127 @@ const sampleMentors = [
     }
 ];
 
+const sampleAnnales = [
+    {
+        id: 1,
+        title: "Baccalauréat Mathématiques - Série C",
+        year: "2024",
+        exam: "Baccalauréat",
+        subject: "Mathématiques",
+        description: "Sujet complet avec corrigé détaillé",
+        pages: 8,
+        difficulty: "Difficile"
+    },
+    {
+        id: 2,
+        title: "Brevet Français - Épreuve écrite",
+        year: "2023",
+        exam: "Brevet",
+        subject: "Français",
+        description: "Analyse de texte et expression écrite",
+        pages: 6,
+        difficulty: "Moyen"
+    },
+    {
+        id: 3,
+        title: "BTS Physique-Chimie - Session principale",
+        year: "2023",
+        exam: "BTS",
+        subject: "Sciences",
+        description: "Épreuve pratique et théorique",
+        pages: 12,
+        difficulty: "Très difficile"
+    },
+    {
+        id: 4,
+        title: "Licence Histoire contemporaine - Partiel",
+        year: "2022",
+        exam: "Licence",
+        subject: "Histoire",
+        description: "Dissertation sur la période 1945-1975",
+        pages: 4,
+        difficulty: "Difficile"
+    }
+];
+
+const sampleMetiers = [
+    {
+        id: 1,
+        title: "Développeur Web",
+        category: "sciences",
+        icon: "💻",
+        description: "Création et maintenance de sites web et applications",
+        formation: "Bac+2 à Bac+5",
+        salaire: "35 000 - 60 000 € / an",
+        competences: ["HTML/CSS", "JavaScript", "Frameworks"],
+        secteurs: ["Tech", "E-commerce", "Médias"]
+    },
+    {
+        id: 2,
+        title: "Infirmier(e)",
+        category: "sante",
+        icon: "🏥",
+        description: "Soins et accompagnement des patients",
+        formation: "Bac+3 (IFSI)",
+        salaire: "28 000 - 45 000 € / an",
+        competences: ["Soins", "Empathie", "Rigueur"],
+        secteurs: ["Hôpital", "Clinique", "Libéral"]
+    },
+    {
+        id: 3,
+        title: "Professeur",
+        category: "education",
+        icon: "🎓",
+        description: "Enseignement et formation des élèves",
+        formation: "Bac+5 (Master MEEF)",
+        salaire: "30 000 - 55 000 € / an",
+        competences: ["Pédagogie", "Communication", "Discipline"],
+        secteurs: ["Éducation nationale", "Privé", "Formation"]
+    },
+    {
+        id: 4,
+        title: "Commercial",
+        category: "commerce",
+        icon: "💼",
+        description: "Vente et relation client",
+        formation: "Bac+2 à Bac+5",
+        salaire: "25 000 - 80 000 € / an",
+        competences: ["Négociation", "Relationnel", "Persuasion"],
+        secteurs: ["Tous secteurs", "B2B", "B2C"]
+    },
+    {
+        id: 5,
+        title: "Graphiste",
+        category: "art",
+        icon: "🎨",
+        description: "Création visuelle et design graphique",
+        formation: "Bac+2 à Bac+5",
+        salaire: "22 000 - 45 000 € / an",
+        competences: ["Créativité", "Logiciels PAO", "Tendances"],
+        secteurs: ["Communication", "Édition", "Web"]
+    },
+    {
+        id: 6,
+        title: "Ingénieur",
+        category: "sciences",
+        icon: "⚙️",
+        description: "Conception et développement de solutions techniques",
+        formation: "Bac+5 (École d'ingénieur)",
+        salaire: "40 000 - 80 000 € / an",
+        competences: ["Analyse", "Innovation", "Gestion projet"],
+        secteurs: ["Industrie", "IT", "Énergie"]
+    }
+];
+
+let currentMetierCategory = 'tous';
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     loadForumPosts();
     loadMentors();
+    loadAnnales();
+    loadMetiers();
 });
 
 function initializeApp() {
@@ -112,6 +228,13 @@ function initializeApp() {
 }
 
 function showSection(sectionName) {
+    // Vérifier si la section nécessite une authentification
+    if ((sectionName === 'annales' || sectionName === 'metiers') && !currentUser) {
+        showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
+        showLogin();
+        return;
+    }
+
     // Cacher toutes les sections
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
@@ -322,7 +445,96 @@ function updateAuthButtons() {
             <span style="color: rgba(255,255,255,0.9);">Bonjour, ${currentUser.name}</span>
             <button class="btn btn-outline" onclick="logout()">Déconnexion</button>
         `;
+        
+        // Rendre les sections authentifiées disponibles
+        document.querySelectorAll('.auth-required').forEach(link => {
+            link.classList.add('available');
+        });
     }
+}
+
+// Chargement des annales
+function loadAnnales() {
+    const annalesGrid = document.getElementById('annalesGrid');
+    annalesGrid.innerHTML = sampleAnnales.map(annale => createAnnaleHTML(annale)).join('');
+}
+
+function createAnnaleHTML(annale) {
+    return `
+        <div class="annale-card">
+            <div class="annale-header">
+                <div>
+                    <h3 class="annale-title">${annale.title}</h3>
+                    <div class="annale-details">
+                        <div>${annale.exam} • ${annale.subject}</div>
+                        <div>${annale.pages} pages • ${annale.difficulty}</div>
+                    </div>
+                </div>
+                <span class="annale-year">${annale.year}</span>
+            </div>
+            <p style="color: #718096; margin-bottom: 1rem;">${annale.description}</p>
+            <div class="annale-actions">
+                <button class="btn-download" onclick="downloadAnnale(${annale.id})">
+                    📥 Télécharger
+                </button>
+                <button class="btn-preview" onclick="previewAnnale(${annale.id})">
+                    👁️ Aperçu
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Chargement des métiers
+function loadMetiers() {
+    const metiersGrid = document.getElementById('metiersGrid');
+    const filteredMetiers = currentMetierCategory === 'tous' 
+        ? sampleMetiers 
+        : sampleMetiers.filter(metier => metier.category === currentMetierCategory);
+    
+    metiersGrid.innerHTML = filteredMetiers.map(metier => createMetierHTML(metier)).join('');
+}
+
+function createMetierHTML(metier) {
+    return `
+        <div class="metier-card" onclick="openMetierDetails(${metier.id})">
+            <div class="metier-icon">${metier.icon}</div>
+            <h3 class="metier-title">${metier.title}</h3>
+            <p class="metier-description">${metier.description}</p>
+            <div class="metier-details">
+                ${metier.competences.map(comp => `<span class="metier-tag">${comp}</span>`).join('')}
+            </div>
+            <div class="metier-salary">${metier.salaire}</div>
+        </div>
+    `;
+}
+
+function showMetierCategory(category) {
+    currentMetierCategory = category;
+    
+    // Mettre à jour les boutons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Recharger les métiers
+    loadMetiers();
+}
+
+function downloadAnnale(annaleId) {
+    const annale = sampleAnnales.find(a => a.id === annaleId);
+    showNotification(`Téléchargement de "${annale.title}" en cours...`, 'info');
+}
+
+function previewAnnale(annaleId) {
+    const annale = sampleAnnales.find(a => a.id === annaleId);
+    showNotification(`Aperçu de "${annale.title}" ouvert`, 'info');
+}
+
+function openMetierDetails(metierId) {
+    const metier = sampleMetiers.find(m => m.id === metierId);
+    showNotification(`Détails du métier "${metier.title}" - Formation: ${metier.formation}`, 'info');
 }
 
 function logout() {
@@ -332,6 +544,17 @@ function logout() {
         <button class="btn btn-outline" onclick="showLogin()">Connexion</button>
         <button class="btn btn-primary" onclick="showRegister()">S'inscrire</button>
     `;
+    
+    // Masquer les sections authentifiées
+    document.querySelectorAll('.auth-required').forEach(link => {
+        link.classList.remove('available');
+    });
+    
+    // Rediriger vers l'accueil si on était sur une section authentifiée
+    if (currentSection === 'annales' || currentSection === 'metiers') {
+        showSection('accueil');
+    }
+    
     showNotification('Déconnexion réussie', 'info');
 }
 
