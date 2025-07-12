@@ -1,3 +1,4 @@
+
 // Variables globales
 let currentUser = null;
 let currentSection = 'accueil';
@@ -501,7 +502,9 @@ function switchToLogin() {
 // Chargement des posts du forum
 function loadForumPosts() {
     const forumPosts = document.getElementById('forumPosts');
-    forumPosts.innerHTML = samplePosts.map(post => createPostHTML(post)).join('');
+    if (forumPosts) {
+        forumPosts.innerHTML = samplePosts.map(post => createPostHTML(post)).join('');
+    }
 }
 
 function createPostHTML(post) {
@@ -539,7 +542,9 @@ function createPostHTML(post) {
 // Chargement des mentors
 function loadMentors() {
     const mentorsGrid = document.getElementById('mentorsGrid');
-    mentorsGrid.innerHTML = sampleMentors.map(mentor => createMentorHTML(mentor)).join('');
+    if (mentorsGrid) {
+        mentorsGrid.innerHTML = sampleMentors.map(mentor => createMentorHTML(mentor)).join('');
+    }
 }
 
 function createMentorHTML(mentor) {
@@ -715,7 +720,9 @@ function updateAuthButtons() {
 // Chargement des annales
 function loadAnnales() {
     const annalesGrid = document.getElementById('annalesGrid');
-    annalesGrid.innerHTML = sampleAnnales.map(annale => createAnnaleHTML(annale)).join('');
+    if (annalesGrid) {
+        annalesGrid.innerHTML = sampleAnnales.map(annale => createAnnaleHTML(annale)).join('');
+    }
 }
 
 function createAnnaleHTML(annale) {
@@ -747,11 +754,13 @@ function createAnnaleHTML(annale) {
 // Chargement des métiers
 function loadMetiers() {
     const metiersGrid = document.getElementById('metiersGrid');
-    const filteredMetiers = currentMetierCategory === 'tous' 
-        ? sampleMetiers 
-        : sampleMetiers.filter(metier => metier.category === currentMetierCategory);
+    if (metiersGrid) {
+        const filteredMetiers = currentMetierCategory === 'tous' 
+            ? sampleMetiers 
+            : sampleMetiers.filter(metier => metier.category === currentMetierCategory);
 
-    metiersGrid.innerHTML = filteredMetiers.map(metier => createMetierHTML(metier)).join('');
+        metiersGrid.innerHTML = filteredMetiers.map(metier => createMetierHTML(metier)).join('');
+    }
 }
 
 function createMetierHTML(metier) {
@@ -869,7 +878,9 @@ function showNotification(message, type = 'info') {
         notification.style.opacity = '0';
         notification.style.transform = 'translateX(100%)';
         setTimeout(() => {
-            document.body.removeChild(notification);
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
         }, 300);
     }, 3000);
 }
@@ -878,106 +889,110 @@ function showNotification(message, type = 'info') {
 function updateProfileSection() {
     const profileContent = document.getElementById('profileContent');
     if (!currentUser) {
-        profileContent.innerHTML = '<p class="text-center">Connectez-vous pour voir votre profil</p>';
+        if (profileContent) {
+            profileContent.innerHTML = '<p class="text-center">Connectez-vous pour voir votre profil</p>';
+        }
         return;
     }
 
     const user = currentUser;
-    profileContent.innerHTML = `
-        <div class="profile-container">
-            <div class="profile-header">
-                <div class="profile-avatar-display">
-                    ${user.photo ? `<img src="${user.photo}" alt="Photo de profil">` : '👤'}
+    if (profileContent) {
+        profileContent.innerHTML = `
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar-display">
+                        ${user.photo ? `<img src="${user.photo}" alt="Photo de profil">` : '👤'}
+                    </div>
+                    <h2 class="profile-name">${user.name}</h2>
+                    <span class="profile-type">${getUserTypeLabel(user.type)}</span>
                 </div>
-                <h2 class="profile-name">${user.name}</h2>
-                <span class="profile-type">${getUserTypeLabel(user.type)}</span>
+
+                <div class="profile-info">
+                    <div class="profile-section">
+                        <h3>📝 À propos</h3>
+                        <div class="profile-bio">
+                            ${user.bio || 'Aucune biographie renseignée.'}
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>📋 Informations</h3>
+                        <div class="profile-details">
+                            <div class="detail-item">
+                                <div class="detail-icon">📧</div>
+                                <div class="detail-content">
+                                    <div class="detail-label">Email</div>
+                                    <div class="detail-value">${user.email}</div>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-icon">🎓</div>
+                                <div class="detail-content">
+                                    <div class="detail-label">Niveau</div>
+                                    <div class="detail-value">${getEducationLevelLabel(user.educationLevel)}</div>
+                                </div>
+                            </div>
+                            ${user.institution ? `
+                            <div class="detail-item">
+                                <div class="detail-icon">🏫</div>
+                                <div class="detail-content">
+                                    <div class="detail-label">Établissement</div>
+                                    <div class="detail-value">${user.institution}</div>
+                                </div>
+                            </div>
+                            ` : ''}
+                            ${user.location ? `
+                            <div class="detail-item">
+                                <div class="detail-icon">📍</div>
+                                <div class="detail-content">
+                                    <div class="detail-label">Localisation</div>
+                                    <div class="detail-value">${user.location}</div>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    ${user.interests && user.interests.length > 0 ? `
+                    <div class="profile-section">
+                        <h3>🎯 Centres d'intérêt</h3>
+                        <div class="interests-display">
+                            ${user.interests.map(interest => `<span class="interest-badge">${getSubjectLabel(interest)}</span>`).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div class="profile-section">
+                        <h3>📊 Statistiques</h3>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">${user.postsCount || 0}</span>
+                                <span class="stat-label">Posts</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">${user.commentsCount || 0}</span>
+                                <span class="stat-label">Commentaires</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">${user.helpedCount || 0}</span>
+                                <span class="stat-label">Personnes aidées</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">${user.reputationScore || 0}</span>
+                                <span class="stat-label">Réputation</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-actions">
+                        <button class="btn btn-primary btn-large" onclick="showEditProfile()">
+                            ✏️ Modifier mon profil
+                        </button>
+                    </div>
+                </div>
             </div>
-
-            <div class="profile-info">
-                <div class="profile-section">
-                    <h3>📝 À propos</h3>
-                    <div class="profile-bio">
-                        ${user.bio || 'Aucune biographie renseignée.'}
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>📋 Informations</h3>
-                    <div class="profile-details">
-                        <div class="detail-item">
-                            <div class="detail-icon">📧</div>
-                            <div class="detail-content">
-                                <div class="detail-label">Email</div>
-                                <div class="detail-value">${user.email}</div>
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-icon">🎓</div>
-                            <div class="detail-content">
-                                <div class="detail-label">Niveau</div>
-                                <div class="detail-value">${getEducationLevelLabel(user.educationLevel)}</div>
-                            </div>
-                        </div>
-                        ${user.institution ? `
-                        <div class="detail-item">
-                            <div class="detail-icon">🏫</div>
-                            <div class="detail-content">
-                                <div class="detail-label">Établissement</div>
-                                <div class="detail-value">${user.institution}</div>
-                            </div>
-                        </div>
-                        ` : ''}
-                        ${user.location ? `
-                        <div class="detail-item">
-                            <div class="detail-icon">📍</div>
-                            <div class="detail-content">
-                                <div class="detail-label">Localisation</div>
-                                <div class="detail-value">${user.location}</div>
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-
-                ${user.interests && user.interests.length > 0 ? `
-                <div class="profile-section">
-                    <h3>🎯 Centres d'intérêt</h3>
-                    <div class="interests-display">
-                        ${user.interests.map(interest => `<span class="interest-badge">${getSubjectLabel(interest)}</span>`).join('')}
-                    </div>
-                </div>
-                ` : ''}
-
-                <div class="profile-section">
-                    <h3>📊 Statistiques</h3>
-                    <div class="profile-stats">
-                        <div class="stat-item">
-                            <span class="stat-number">${user.postsCount || 0}</span>
-                            <span class="stat-label">Posts</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${user.commentsCount || 0}</span>
-                            <span class="stat-label">Commentaires</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${user.helpedCount || 0}</span>
-                            <span class="stat-label">Personnes aidées</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${user.reputationScore || 0}</span>
-                            <span class="stat-label">Réputation</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="profile-actions">
-                    <button class="btn btn-primary btn-large" onclick="showEditProfile()">
-                        ✏️ Modifier mon profil
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
+    }
 }
 
 function showEditProfile() {
@@ -987,14 +1002,23 @@ function showEditProfile() {
     }
 
     // Pré-remplir le formulaire avec les données actuelles
-    document.getElementById('editFirstName').value = currentUser.firstName || '';
-    document.getElementById('editLastName').value = currentUser.lastName || '';
-    document.getElementById('editEmail').value = currentUser.email || '';
-    document.getElementById('editUserType').value = currentUser.type || '';
-    document.getElementById('editEducationLevel').value = currentUser.educationLevel || '';
-    document.getElementById('editInstitution').value = currentUser.institution || '';
-    document.getElementById('editLocation').value = currentUser.location || '';
-    document.getElementById('editBio').value = currentUser.bio || '';
+    const editFirstName = document.getElementById('editFirstName');
+    const editLastName = document.getElementById('editLastName');
+    const editEmail = document.getElementById('editEmail');
+    const editUserType = document.getElementById('editUserType');
+    const editEducationLevel = document.getElementById('editEducationLevel');
+    const editInstitution = document.getElementById('editInstitution');
+    const editLocation = document.getElementById('editLocation');
+    const editBio = document.getElementById('editBio');
+
+    if (editFirstName) editFirstName.value = currentUser.firstName || '';
+    if (editLastName) editLastName.value = currentUser.lastName || '';
+    if (editEmail) editEmail.value = currentUser.email || '';
+    if (editUserType) editUserType.value = currentUser.type || '';
+    if (editEducationLevel) editEducationLevel.value = currentUser.educationLevel || '';
+    if (editInstitution) editInstitution.value = currentUser.institution || '';
+    if (editLocation) editLocation.value = currentUser.location || '';
+    if (editBio) editBio.value = currentUser.bio || '';
 
     // Cocher les centres d'intérêt existants
     const interestCheckboxes = document.querySelectorAll('input[name="interests"]');
@@ -1002,11 +1026,9 @@ function showEditProfile() {
         checkbox.checked = currentUser.interests && currentUser.interests.includes(checkbox.value);
     });
 
-    // AffThis code adds admin panel functionality including dashboard, user management, post management, mentorship management, and report management.
-```tool_code
-icher la photo actuelle
+    // Afficher la photo actuelle
     const currentPhoto = document.getElementById('currentPhoto');
-    if (currentUser.photo) {
+    if (currentPhoto && currentUser.photo) {
         currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${currentUser.photo}" alt="Photo actuelle">`;
     }
 
@@ -1061,7 +1083,9 @@ function handlePhotoChange(event) {
 
             // Mettre à jour l'aperçu
             const currentPhoto = document.getElementById('currentPhoto');
-            currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${photoUrl}" alt="Nouvelle photo">`;
+            if (currentPhoto) {
+                currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${photoUrl}" alt="Nouvelle photo">`;
+            }
 
             // Sauvegarder dans l'utilisateur actuel
             if (currentUser) {
@@ -1074,13 +1098,18 @@ function handlePhotoChange(event) {
 
 function removePhoto() {
     const currentPhoto = document.getElementById('currentPhoto');
-    currentPhoto.querySelector('.profile-avatar-large').innerHTML = '👤';
+    if (currentPhoto) {
+        currentPhoto.querySelector('.profile-avatar-large').innerHTML = '👤';
+    }
 
     if (currentUser) {
         currentUser.photo = null;
     }
 
-    document.getElementById('photoInput').value = '';
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.value = '';
+    }
     showNotification('Photo supprimée', 'info');
 }
 
@@ -1116,12 +1145,14 @@ function getSubjectLabel(subject) {
 }
 
 // Recherche dans le forum
-const searchInput = document.querySelector('.search-input');
-if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        filterPosts(searchTerm);
-    });
+function setupSearchHandler() {
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            filterPosts(searchTerm);
+        });
+    }
 }
 
 function filterPosts(searchTerm) {
@@ -1132,7 +1163,9 @@ function filterPosts(searchTerm) {
     );
 
     const forumPosts = document.getElementById('forumPosts');
-    forumPosts.innerHTML = filteredPosts.map(post => createPostHTML(post)).join('');
+    if (forumPosts) {
+        forumPosts.innerHTML = filteredPosts.map(post => createPostHTML(post)).join('');
+    }
 }
 
 // Chargement des résultats d'examens
@@ -1165,6 +1198,8 @@ function showExamResults(examType, buttonElement = null) {
 function loadExamResults() {
     const results = sampleResults[currentExamType] || [];
     const content = document.getElementById('resultatsContent');
+
+    if (!content) return;
 
     // Afficher le loading
     content.innerHTML = `
@@ -1267,15 +1302,23 @@ function updateResultsStats(results) {
     const admitted = results.filter(r => r.status === 'admitted').length;
     const successRate = total > 0 ? Math.round((admitted / total) * 100) : 0;
 
-    document.getElementById('totalCandidates').textContent = total;
-    document.getElementById('admittedCandidates').textContent = admitted;
-    document.getElementById('successRate').textContent = successRate + '%';
+    const totalCandidatesEl = document.getElementById('totalCandidates');
+    const admittedCandidatesEl = document.getElementById('admittedCandidates');
+    const successRateEl = document.getElementById('successRate');
+
+    if (totalCandidatesEl) totalCandidatesEl.textContent = total;
+    if (admittedCandidatesEl) admittedCandidatesEl.textContent = admitted;
+    if (successRateEl) successRateEl.textContent = successRate + '%';
 }
 
 function searchResults() {
-    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
-    const yearFilter = document.getElementById('yearFilter').value;
-    const regionFilter = document.getElementById('regionFilter').value;
+    const searchInput = document.getElementById('studentSearch');
+    const yearFilter = document.getElementById('yearFilter');
+    const regionFilter = document.getElementById('regionFilter');
+
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    const yearFilterValue = yearFilter ? yearFilter.value : '';
+    const regionFilterValue = regionFilter ? regionFilter.value : '';
 
     let filteredResults = sampleResults[currentExamType] || [];
 
@@ -1288,16 +1331,18 @@ function searchResults() {
     }
 
     // Filtrer par année
-    if (yearFilter) {
-        filteredResults = filteredResults.filter(result => result.year === yearFilter);
+    if (yearFilterValue) {
+        filteredResults = filteredResults.filter(result => result.year === yearFilterValue);
     }
 
     // Filtrer par région
-    if (regionFilter) {
-        filteredResults = filteredResults.filter(result => result.region === regionFilter);
+    if (regionFilterValue) {
+        filteredResults = filteredResults.filter(result => result.region === regionFilterValue);
     }
 
     const content = document.getElementById('resultatsContent');
+    if (!content) return;
+
     if (filteredResults.length === 0) {
         content.innerHTML = `
             <div class="no-results">
@@ -1337,7 +1382,10 @@ function showAdminTab(tabName, buttonElement = null) {
     });
 
     // Afficher le contenu demandé
-    document.getElementById(`admin-${tabName}`).classList.add('active');
+    const targetContent = document.getElementById(`admin-${tabName}`);
+    if (targetContent) {
+        targetContent.classList.add('active');
+    }
 
     // Charger les données selon l'onglet
     switch(tabName) {
@@ -1364,182 +1412,199 @@ function showAdminTab(tabName, buttonElement = null) {
 
 function loadAdminDashboard() {
     // Charger les statistiques
-    document.getElementById('totalUsers').textContent = adminUsers.length;
-    document.getElementById('totalPosts').textContent = samplePosts.length;
-    document.getElementById('activeMentorships').textContent = adminMentorships.filter(m => m.status === 'active').length;
-    document.getElementById('pendingReports').textContent = adminReports.filter(r => r.status === 'pending').length;
+    const totalUsersEl = document.getElementById('totalUsers');
+    const totalPostsEl = document.getElementById('totalPosts');
+    const activeMentorshipsEl = document.getElementById('activeMentorships');
+    const pendingReportsEl = document.getElementById('pendingReports');
+
+    if (totalUsersEl) totalUsersEl.textContent = adminUsers.length;
+    if (totalPostsEl) totalPostsEl.textContent = samplePosts.length;
+    if (activeMentorshipsEl) activeMentorshipsEl.textContent = adminMentorships.filter(m => m.status === 'active').length;
+    if (pendingReportsEl) pendingReportsEl.textContent = adminReports.filter(r => r.status === 'pending').length;
 
     // Charger l'activité récente
     const recentActivity = document.getElementById('recentActivity');
-    recentActivity.innerHTML = `
-        <div class="activity-item">
-            <div class="activity-icon">👤</div>
-            <div class="activity-content">
-                <div class="activity-text">Nouvel utilisateur inscrit : Amina K.</div>
-                <div class="activity-time">Il y a 2 heures</div>
+    if (recentActivity) {
+        recentActivity.innerHTML = `
+            <div class="activity-item">
+                <div class="activity-icon">👤</div>
+                <div class="activity-content">
+                    <div class="activity-text">Nouvel utilisateur inscrit : Amina K.</div>
+                    <div class="activity-time">Il y a 2 heures</div>
+                </div>
             </div>
-        </div>
-        <div class="activity-item">
-            <div class="activity-icon">📝</div>
-            <div class="activity-content">
-                <div class="activity-text">Nouveau post publié dans le forum</div>
-                <div class="activity-time">Il y a 4 heures</div>
+            <div class="activity-item">
+                <div class="activity-icon">📝</div>
+                <div class="activity-content">
+                    <div class="activity-text">Nouveau post publié dans le forum</div>
+                    <div class="activity-time">Il y a 4 heures</div>
+                </div>
             </div>
-        </div>
-        <div class="activity-item">
-            <div class="activity-icon">🎓</div>
-            <div class="activity-content">
-                <div class="activity-text">Nouvelle relation de mentorat créée</div>
-                <div class="activity-time">Il y a 1 jour</div>
+            <div class="activity-item">
+                <div class="activity-icon">🎓</div>
+                <div class="activity-content">
+                    <div class="activity-text">Nouvelle relation de mentorat créée</div>
+                    <div class="activity-time">Il y a 1 jour</div>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     // Charger la distribution par niveau
     const levelDistribution = document.getElementById('levelDistribution');
-    levelDistribution.innerHTML = `
-        <div class="level-item">
-            <span>Collège</span>
-            <div class="level-bar">
-                <div class="level-fill" style="width: 25%"></div>
+    if (levelDistribution) {
+        levelDistribution.innerHTML = `
+            <div class="level-item">
+                <span>Collège</span>
+                <div class="level-bar">
+                    <div class="level-fill" style="width: 25%"></div>
+                </div>
+                <span>25%</span>
             </div>
-            <span>25%</span>
-        </div>
-        <div class="level-item">
-            <span>Lycée</span>
-            <div class="level-bar">
-                <div class="level-fill" style="width: 45%"></div>
+            <div class="level-item">
+                <span>Lycée</span>
+                <div class="level-bar">
+                    <div class="level-fill" style="width: 45%"></div>
+                </div>
+                <span>45%</span>
             </div>
-            <span>45%</span>
-        </div>
-        <div class="level-item">
-            <span>Université</span>
-            <div class="level-bar">
-                <div class="level-fill" style="width: 20%"></div>
+            <div class="level-item">
+                <span>Université</span>
+                <div class="level-bar">
+                    <div class="level-fill" style="width: 20%"></div>
+                </div>
+                <span>20%</span>
             </div>
-            <span>20%</span>
-        </div>
-        <div class="level-item">
-            <span>Professionnel</span>
-            <div class="level-bar">
-                <div class="level-fill" style="width: 10%"></div>
+            <div class="level-item">
+                <span>Professionnel</span>
+                <div class="level-bar">
+                    <div class="level-fill" style="width: 10%"></div>
+                </div>
+                <span>10%</span>
             </div>
-            <span>10%</span>
-        </div>
-    `;
+        `;
+    }
 }
 
 function loadAdminUsers() {
     const tableBody = document.getElementById('usersTableBody');
-    tableBody.innerHTML = adminUsers.map(user => `
-        <tr>
-            <td>
-                <div class="user-avatar-table">${user.avatar}</div>
-            </td>
-            <td><strong>${user.firstName} ${user.lastName}</strong></td>
-            <td>${user.email}</td>
-            <td>${getUserTypeLabel(user.type)}</td>
-            <td>${getEducationLevelLabel(user.educationLevel)}</td>
-            <td>
-                <span class="status-badge status-${user.status}">
-                    ${user.status === 'active' ? 'Actif' : user.status === 'inactive' ? 'Inactif' : 'Banni'}
-                </span>
-            </td>
-            <td>${new Date(user.joinDate).toLocaleDateString('fr-FR')}</td>
-            <td>
-                <div class="action-buttons">
-                    <button class="btn-icon btn-view" onclick="viewUser(${user.id})" title="Voir">👁️</button>
-                    <button class="btn-icon btn-edit" onclick="editUser(${user.id})" title="Modifier">✏️</button>
-                    <button class="btn-icon btn-delete" onclick="deleteUser(${user.id})" title="Supprimer">🗑️</button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+    if (tableBody) {
+        tableBody.innerHTML = adminUsers.map(user => `
+            <tr>
+                <td>
+                    <div class="user-avatar-table">${user.avatar}</div>
+                </td>
+                <td><strong>${user.firstName} ${user.lastName}</strong></td>
+                <td>${user.email}</td>
+                <td>${getUserTypeLabel(user.type)}</td>
+                <td>${getEducationLevelLabel(user.educationLevel)}</td>
+                <td>
+                    <span class="status-badge status-${user.status}">
+                        ${user.status === 'active' ? 'Actif' : user.status === 'inactive' ? 'Inactif' : 'Banni'}
+                    </span>
+                </td>
+                <td>${new Date(user.joinDate).toLocaleDateString('fr-FR')}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-icon btn-view" onclick="viewUser(${user.id})" title="Voir">👁️</button>
+                        <button class="btn-icon btn-edit" onclick="editUser(${user.id})" title="Modifier">✏️</button>
+                        <button class="btn-icon btn-delete" onclick="deleteUser(${user.id})" title="Supprimer">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
 }
 
 function loadAdminPosts() {
     const postsGrid = document.getElementById('adminPostsGrid');
-    postsGrid.innerHTML = samplePosts.map(post => `
-        <div class="post-card-admin">
-            <div class="post-header-admin">
-                <div>
-                    <h3 class="post-title-admin">${post.title}</h3>
-                    <div class="post-meta-admin">
-                        Par ${post.author} • ${post.date} • ${post.level}
+    if (postsGrid) {
+        postsGrid.innerHTML = samplePosts.map(post => `
+            <div class="post-card-admin">
+                <div class="post-header-admin">
+                    <div>
+                        <h3 class="post-title-admin">${post.title}</h3>
+                        <div class="post-meta-admin">
+                            Par ${post.author} • ${post.date} • ${post.level}
+                        </div>
+                    </div>
+                    <span class="post-category">${post.subject}</span>
+                </div>
+                <div class="post-content-admin">${post.content}</div>
+                <div class="post-actions-admin">
+                    <div class="post-stats">
+                        <span>👍 ${post.likes}</span>
+                        <span>💬 ${post.replies}</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-icon btn-view" onclick="viewPost(${post.id})" title="Voir">👁️</button>
+                        <button class="btn-icon btn-edit" onclick="editPost(${post.id})" title="Modifier">✏️</button>
+                        <button class="btn-icon btn-delete" onclick="deletePost(${post.id})" title="Supprimer">🗑️</button>
                     </div>
                 </div>
-                <span class="post-category">${post.subject}</span>
             </div>
-            <div class="post-content-admin">${post.content}</div>
-            <div class="post-actions-admin">
-                <div class="post-stats">
-                    <span>👍 ${post.likes}</span>
-                    <span>💬 ${post.replies}</span>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn-icon btn-view" onclick="viewPost(${post.id})" title="Voir">👁️</button>
-                    <button class="btn-icon btn-edit" onclick="editPost(${post.id})" title="Modifier">✏️</button>
-                    <button class="btn-icon btn-delete" onclick="deletePost(${post.id})" title="Supprimer">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
 }
 
 function loadAdminMentorships() {
     const tableBody = document.getElementById('mentorshipsTableBody');
-    tableBody.innerHTML = adminMentorships.map(mentorship => `
-        <tr>
-            <td><strong>${mentorship.mentor}</strong></td>
-            <td>${mentorship.student}</td>
-            <td>${mentorship.subject}</td>
-            <td>
-                <span class="status-badge status-${mentorship.status}">
-                    ${mentorship.status === 'active' ? 'Actif' : mentorship.status === 'pending' ? 'En attente' : 'Terminé'}
-                </span>
-            </td>
-            <td>${new Date(mentorship.startDate).toLocaleDateString('fr-FR')}</td>
-            <td>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px;">
-                        <div style="width: ${mentorship.progress}%; height: 100%; background: #10b981; border-radius: 4px;"></div>
+    if (tableBody) {
+        tableBody.innerHTML = adminMentorships.map(mentorship => `
+            <tr>
+                <td><strong>${mentorship.mentor}</strong></td>
+                <td>${mentorship.student}</td>
+                <td>${mentorship.subject}</td>
+                <td>
+                    <span class="status-badge status-${mentorship.status}">
+                        ${mentorship.status === 'active' ? 'Actif' : mentorship.status === 'pending' ? 'En attente' : 'Terminé'}
+                    </span>
+                </td>
+                <td>${new Date(mentorship.startDate).toLocaleDateString('fr-FR')}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px;">
+                            <div style="width: ${mentorship.progress}%; height: 100%; background: #10b981; border-radius: 4px;"></div>
+                        </div>
+                        <span style="font-size: 0.8rem;">${mentorship.progress}%</span>
                     </div>
-                    <span style="font-size: 0.8rem;">${mentorship.progress}%</span>
-                </div>
-            </td>
-            <td>
-                <div class="action-buttons">
-                    <button class="btn-icon btn-view" onclick="viewMentorship(${mentorship.id})" title="Voir">👁️</button>
-                    <button class="btn-icon btn-edit" onclick="editMentorship(${mentorship.id})" title="Modifier">✏️</button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-icon btn-view" onclick="viewMentorship(${mentorship.id})" title="Voir">👁️</button>
+                        <button class="btn-icon btn-edit" onclick="editMentorship(${mentorship.id})" title="Modifier">✏️</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
 }
 
 function loadAdminReports() {
     const reportsList = document.getElementById('reportsList');
-    reportsList.innerHTML = adminReports.map(report => `
-        <div class="report-card ${report.urgent ? 'urgent' : ''} ${report.status === 'resolved' ? 'resolved' : ''}">
-            <div class="report-header">
-                <div>
-                    <span class="report-type">${report.type === 'spam' ? 'Spam' : report.type === 'inappropriate' ? 'Contenu inapproprié' : 'Harcèlement'}</span>
-                    <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
-                        Signalé par ${report.reporter} • ${new Date(report.date).toLocaleDateString('fr-FR')}
+    if (reportsList) {
+        reportsList.innerHTML = adminReports.map(report => `
+            <div class="report-card ${report.urgent ? 'urgent' : ''} ${report.status === 'resolved' ? 'resolved' : ''}">
+                <div class="report-header">
+                    <div>
+                        <span class="report-type">${report.type === 'spam' ? 'Spam' : report.type === 'inappropriate' ? 'Contenu inapproprié' : 'Harcèlement'}</span>
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                            Signalé par ${report.reporter} • ${new Date(report.date).toLocaleDateString('fr-FR')}
+                        </div>
                     </div>
+                    <span class="status-badge status-${report.status}">
+                        ${report.status === 'pending' ? 'En attente' : report.status === 'resolved' ? 'Traité' : 'Rejeté'}
+                    </span>
                 </div>
-                <span class="status-badge status-${report.status}">
-                    ${report.status === 'pending' ? 'En attente' : report.status === 'resolved' ? 'Traité' : 'Rejeté'}
-                </span>
+                <div class="report-content">${report.content}</div>
+                <div class="report-actions">
+                    <button class="btn btn-primary" onclick="resolveReport(${report.id})">Traiter</button>
+                    <button class="btn btn-outline" onclick="dismissReport(${report.id})">Rejeter</button>
+                    <button class="btn btn-outline" onclick="viewReportDetails(${report.id})">Détails</button>
+                </div>
             </div>
-            <div class="report-content">${report.content}</div>
-            <div class="report-actions">
-                <button class="btn btn-primary" onclick="resolveReport(${report.id})">Traiter</button>
-                <button class="btn btn-outline" onclick="dismissReport(${report.id})">Rejeter</button>
-                <button class="btn btn-outline" onclick="viewReportDetails(${report.id})">Détails</button>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
 }
 
 // Fonctions d'action admin
@@ -1550,12 +1615,20 @@ function showAddUserModal() {
 function editUser(userId) {
     const user = adminUsers.find(u => u.id === userId);
     if (user) {
-        document.getElementById('editUserId').value = user.id;
-        document.getElementById('editUserFirstName').value = user.firstName;
-        document.getElementById('editUserLastName').value = user.lastName;
-        document.getElementById('editUserEmail').value = user.email;
-        document.getElementById('editUserTypeAdmin').value = user.type;
-        document.getElementById('editUserStatus').value = user.status;
+        const editUserId = document.getElementById('editUserId');
+        const editUserFirstName = document.getElementById('editUserFirstName');
+        const editUserLastName = document.getElementById('editUserLastName');
+        const editUserEmail = document.getElementById('editUserEmail');
+        const editUserTypeAdmin = document.getElementById('editUserTypeAdmin');
+        const editUserStatus = document.getElementById('editUserStatus');
+
+        if (editUserId) editUserId.value = user.id;
+        if (editUserFirstName) editUserFirstName.value = user.firstName;
+        if (editUserLastName) editUserLastName.value = user.lastName;
+        if (editUserEmail) editUserEmail.value = user.email;
+        if (editUserTypeAdmin) editUserTypeAdmin.value = user.type;
+        if (editUserStatus) editUserStatus.value = user.status;
+
         document.getElementById('editUserModal').style.display = 'block';
     }
 }
@@ -1641,13 +1714,4 @@ function manageResultats() {
 
 function manageSubjects() {
     showNotification('Gestion des matières - Fonctionnalité en développement', 'info');
-}
-
-// Initialiser l'admin au chargement
-document.addEventListener('DOMContentLoaded', function() {
-    // Si on est sur l'admin, charger le dashboard
-    if (currentSection === 'admin' && currentUser && currentUser.type === 'admin') {
-        loadAdminDashboard();
-    }
-});
 }
