@@ -1,4 +1,3 @@
-
 // Variables globales
 let currentUser = null;
 let currentSection = 'accueil';
@@ -317,6 +316,77 @@ const sampleResults = {
     ]
 };
 
+// Données d'administration (à remplacer par une base de données)
+const adminUsers = [
+    {
+        id: 1,
+        firstName: "Admin",
+        lastName: "LEWO",
+        email: "admin@lewo.com",
+        type: "admin",
+        educationLevel: "universite",
+        status: "active",
+        joinDate: new Date(),
+        avatar: "AL"
+    },
+    {
+        id: 2,
+        firstName: "Utilisateur",
+        lastName: "Standard",
+        email: "user@lewo.com",
+        type: "student",
+        educationLevel: "lycee",
+        status: "active",
+        joinDate: new Date(),
+        avatar: "US"
+    }
+];
+
+const adminMentorships = [
+    {
+        id: 1,
+        mentor: "Dr. Ahmed Hassan",
+        student: "Amina K.",
+        subject: "Mathématiques",
+        status: "active",
+        startDate: new Date(),
+        progress: 75
+    },
+    {
+        id: 2,
+        mentor: "Mme Aïcha Saïd",
+        student: "Said M.",
+        subject: "Français",
+        status: "pending",
+        startDate: new Date(),
+        progress: 20
+    }
+];
+
+const adminReports = [
+    {
+        id: 1,
+        reporter: "Utilisateur Standard",
+        type: "spam",
+        content: "Ce post est un spam",
+        status: "pending",
+        date: new Date(),
+        urgent: true
+    },
+    {
+        id: 2,
+        reporter: "Amina K.",
+        type: "inappropriate",
+        content: "Ce contenu est inapproprié",
+        status: "resolved",
+        date: new Date(),
+        urgent: false
+    }
+];
+
+// Variables pour l'admin
+let currentAdminTab = 'dashboard';
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
@@ -346,7 +416,7 @@ function initializeApp() {
 
     // Gestion des formulaires
     setupFormHandlers();
-    
+
     // Initialiser les résultats
     loadResultats();
 }
@@ -526,7 +596,7 @@ function setupFormHandlers() {
 function handleLogin() {
     // Simulation de connexion
     const email = document.querySelector('#loginModal input[type="email"]').value;
-    
+
     currentUser = {
         email: email,
         firstName: "Utilisateur",
@@ -557,7 +627,7 @@ function handleRegister() {
     const email = document.querySelector('#registerModal input[type="email"]').value;
     const userType = document.querySelector('#registerModal select').value;
     const educationLevel = document.querySelectorAll('#registerModal select')[1].value;
-    
+
     currentUser = {
         email: email,
         firstName: firstname,
@@ -584,7 +654,7 @@ function handleRegister() {
 function handleNewPost() {
     const title = document.querySelector('#newPostModal input[placeholder="Titre de votre post"]').value;
     const content = document.querySelector('#newPostModal textarea').value;
-    
+
     // Ajouter le nouveau post (simulation)
     const newPost = {
         id: samplePosts.length + 1,
@@ -612,12 +682,12 @@ function updateAuthButtons() {
             <span style="color: rgba(255,255,255,0.9);">Bonjour, ${currentUser.name}</span>
             <button class="btn btn-outline" onclick="logout()">Déconnexion</button>
         `;
-        
+
         // Rendre les sections authentifiées disponibles
         document.querySelectorAll('.auth-required').forEach(link => {
             link.classList.add('available');
         });
-        
+
         // Mettre à jour le profil
         updateProfileSection();
     }
@@ -661,7 +731,7 @@ function loadMetiers() {
     const filteredMetiers = currentMetierCategory === 'tous' 
         ? sampleMetiers 
         : sampleMetiers.filter(metier => metier.category === currentMetierCategory);
-    
+
     metiersGrid.innerHTML = filteredMetiers.map(metier => createMetierHTML(metier)).join('');
 }
 
@@ -681,13 +751,13 @@ function createMetierHTML(metier) {
 
 function showMetierCategory(category) {
     currentMetierCategory = category;
-    
+
     // Mettre à jour les boutons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
     // Recharger les métiers
     loadMetiers();
 }
@@ -714,17 +784,17 @@ function logout() {
         <button class="btn btn-outline" onclick="showLogin()">Connexion</button>
         <button class="btn btn-primary" onclick="showRegister()">S'inscrire</button>
     `;
-    
+
     // Masquer les sections authentifiées
     document.querySelectorAll('.auth-required').forEach(link => {
         link.classList.remove('available');
     });
-    
+
     // Rediriger vers l'accueil si on était sur une section authentifiée
     if (currentSection === 'annales' || currentSection === 'metiers') {
         showSection('accueil');
     }
-    
+
     showNotification('Déconnexion réussie', 'info');
 }
 
@@ -733,7 +803,7 @@ function contactMentor(mentorId) {
         showLogin();
         return;
     }
-    
+
     const mentor = sampleMentors.find(m => m.id === mentorId);
     showNotification(`Demande de contact envoyée à ${mentor.name}`, 'success');
 }
@@ -757,15 +827,15 @@ function showNotification(message, type = 'info') {
         transition: all 0.3s ease;
     `;
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
+
     // Animation d'entrée
     setTimeout(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateX(0)';
     }, 100);
-    
+
     // Suppression automatique
     setTimeout(() => {
         notification.style.opacity = '0';
@@ -904,7 +974,9 @@ function showEditProfile() {
         checkbox.checked = currentUser.interests && currentUser.interests.includes(checkbox.value);
     });
 
-    // Afficher la photo actuelle
+    // AffThis code adds admin panel functionality including dashboard, user management, post management, mentorship management, and report management.
+```tool_code
+icher la photo actuelle
     const currentPhoto = document.getElementById('currentPhoto');
     if (currentUser.photo) {
         currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${currentUser.photo}" alt="Photo actuelle">`;
@@ -958,11 +1030,11 @@ function handlePhotoChange(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const photoUrl = e.target.result;
-            
+
             // Mettre à jour l'aperçu
             const currentPhoto = document.getElementById('currentPhoto');
             currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${photoUrl}" alt="Nouvelle photo">`;
-            
+
             // Sauvegarder dans l'utilisateur actuel
             if (currentUser) {
                 currentUser.photo = photoUrl;
@@ -975,11 +1047,11 @@ function handlePhotoChange(event) {
 function removePhoto() {
     const currentPhoto = document.getElementById('currentPhoto');
     currentPhoto.querySelector('.profile-avatar-large').innerHTML = '👤';
-    
+
     if (currentUser) {
         currentUser.photo = null;
     }
-    
+
     document.getElementById('photoInput').value = '';
     showNotification('Photo supprimée', 'info');
 }
@@ -1030,7 +1102,7 @@ function filterPosts(searchTerm) {
         post.content.toLowerCase().includes(searchTerm) ||
         post.subject.toLowerCase().includes(searchTerm)
     );
-    
+
     const forumPosts = document.getElementById('forumPosts');
     forumPosts.innerHTML = filteredPosts.map(post => createPostHTML(post)).join('');
 }
@@ -1042,13 +1114,13 @@ function loadResultats() {
 
 function showExamResults(examType) {
     currentExamType = examType;
-    
+
     // Mettre à jour les boutons
     document.querySelectorAll('.exam-tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
     // Charger les résultats
     loadExamResults();
 }
@@ -1056,7 +1128,7 @@ function showExamResults(examType) {
 function loadExamResults() {
     const results = sampleResults[currentExamType] || [];
     const content = document.getElementById('resultatsContent');
-    
+
     // Afficher le loading
     content.innerHTML = `
         <div class="loading-results">
@@ -1064,7 +1136,7 @@ function loadExamResults() {
             <p>Chargement des résultats...</p>
         </div>
     `;
-    
+
     // Simuler un délai de chargement
     setTimeout(() => {
         if (results.length === 0) {
@@ -1084,7 +1156,7 @@ function loadExamResults() {
 
 function createResultsTableHTML(results) {
     const headers = getTableHeaders(currentExamType);
-    
+
     return `
         <table class="resultats-table">
             <thead>
@@ -1114,7 +1186,7 @@ function getTableHeaders(examType) {
 
 function createResultRowHTML(result) {
     let specificCells = '';
-    
+
     switch(currentExamType) {
         case 'bac':
             specificCells = `
@@ -1138,7 +1210,7 @@ function createResultRowHTML(result) {
             `;
             break;
     }
-    
+
     return `
         <tr>
             <td><strong>${result.name}</strong></td>
@@ -1157,7 +1229,7 @@ function updateResultsStats(results) {
     const total = results.length;
     const admitted = results.filter(r => r.status === 'admitted').length;
     const successRate = total > 0 ? Math.round((admitted / total) * 100) : 0;
-    
+
     document.getElementById('totalCandidates').textContent = total;
     document.getElementById('admittedCandidates').textContent = admitted;
     document.getElementById('successRate').textContent = successRate + '%';
@@ -1167,9 +1239,9 @@ function searchResults() {
     const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
     const yearFilter = document.getElementById('yearFilter').value;
     const regionFilter = document.getElementById('regionFilter').value;
-    
+
     let filteredResults = sampleResults[currentExamType] || [];
-    
+
     // Filtrer par terme de recherche
     if (searchTerm) {
         filteredResults = filteredResults.filter(result => 
@@ -1177,17 +1249,17 @@ function searchResults() {
             result.numero.toLowerCase().includes(searchTerm)
         );
     }
-    
+
     // Filtrer par année
     if (yearFilter) {
         filteredResults = filteredResults.filter(result => result.year === yearFilter);
     }
-    
+
     // Filtrer par région
     if (regionFilter) {
         filteredResults = filteredResults.filter(result => result.region === regionFilter);
     }
-    
+
     const content = document.getElementById('resultatsContent');
     if (filteredResults.length === 0) {
         content.innerHTML = `
@@ -1201,4 +1273,335 @@ function searchResults() {
         content.innerHTML = createResultsTableHTML(filteredResults);
         updateResultsStats(filteredResults);
     }
+}
+
+// Fonctions d'administration
+function showAdminTab(tabName) {
+    currentAdminTab = tabName;
+
+    // Mettre à jour les onglets
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    // Masquer tous les contenus
+    document.querySelectorAll('.admin-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Afficher le contenu demandé
+    document.getElementById(`admin-${tabName}`).classList.add('active');
+
+    // Charger les données selon l'onglet
+    switch(tabName) {
+        case 'dashboard':
+            loadAdminDashboard();
+            break;
+        case 'users':
+            loadAdminUsers();
+            break;
+        case 'posts':
+            loadAdminPosts();
+            break;
+        case 'mentorships':
+            loadAdminMentorships();
+            break;
+        case 'reports':
+            loadAdminReports();
+            break;
+        case 'content':
+            // Contenu déjà chargé statiquement
+            break;
+    }
+}
+
+function loadAdminDashboard() {
+    // Charger les statistiques
+    document.getElementById('totalUsers').textContent = adminUsers.length;
+    document.getElementById('totalPosts').textContent = samplePosts.length;
+    document.getElementById('activeMentorships').textContent = adminMentorships.filter(m => m.status === 'active').length;
+    document.getElementById('pendingReports').textContent = adminReports.filter(r => r.status === 'pending').length;
+
+    // Charger l'activité récente
+    const recentActivity = document.getElementById('recentActivity');
+    recentActivity.innerHTML = `
+        <div class="activity-item">
+            <div class="activity-icon">👤</div>
+            <div class="activity-content">
+                <div class="activity-text">Nouvel utilisateur inscrit : Amina K.</div>
+                <div class="activity-time">Il y a 2 heures</div>
+            </div>
+        </div>
+        <div class="activity-item">
+            <div class="activity-icon">📝</div>
+            <div class="activity-content">
+                <div class="activity-text">Nouveau post publié dans le forum</div>
+                <div class="activity-time">Il y a 4 heures</div>
+            </div>
+        </div>
+        <div class="activity-item">
+            <div class="activity-icon">🎓</div>
+            <div class="activity-content">
+                <div class="activity-text">Nouvelle relation de mentorat créée</div>
+                <div class="activity-time">Il y a 1 jour</div>
+            </div>
+        </div>
+    `;
+
+    // Charger la distribution par niveau
+    const levelDistribution = document.getElementById('levelDistribution');
+    levelDistribution.innerHTML = `
+        <div class="level-item">
+            <span>Collège</span>
+            <div class="level-bar">
+                <div class="level-fill" style="width: 25%"></div>
+            </div>
+            <span>25%</span>
+        </div>
+        <div class="level-item">
+            <span>Lycée</span>
+            <div class="level-bar">
+                <div class="level-fill" style="width: 45%"></div>
+            </div>
+            <span>45%</span>
+        </div>
+        <div class="level-item">
+            <span>Université</span>
+            <div class="level-bar">
+                <div class="level-fill" style="width: 20%"></div>
+            </div>
+            <span>20%</span>
+        </div>
+        <div class="level-item">
+            <span>Professionnel</span>
+            <div class="level-bar">
+                <div class="level-fill" style="width: 10%"></div>
+            </div>
+            <span>10%</span>
+        </div>
+    `;
+}
+
+function loadAdminUsers() {
+    const tableBody = document.getElementById('usersTableBody');
+    tableBody.innerHTML = adminUsers.map(user => `
+        <tr>
+            <td>
+                <div class="user-avatar-table">${user.avatar}</div>
+            </td>
+            <td><strong>${user.firstName} ${user.lastName}</strong></td>
+            <td>${user.email}</td>
+            <td>${getUserTypeLabel(user.type)}</td>
+            <td>${getEducationLevelLabel(user.educationLevel)}</td>
+            <td>
+                <span class="status-badge status-${user.status}">
+                    ${user.status === 'active' ? 'Actif' : user.status === 'inactive' ? 'Inactif' : 'Banni'}
+                </span>
+            </td>
+            <td>${new Date(user.joinDate).toLocaleDateString('fr-FR')}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-icon btn-view" onclick="viewUser(${user.id})" title="Voir">👁️</button>
+                    <button class="btn-icon btn-edit" onclick="editUser(${user.id})" title="Modifier">✏️</button>
+                    <button class="btn-icon btn-delete" onclick="deleteUser(${user.id})" title="Supprimer">🗑️</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function loadAdminPosts() {
+    const postsGrid = document.getElementById('adminPostsGrid');
+    postsGrid.innerHTML = samplePosts.map(post => `
+        <div class="post-card-admin">
+            <div class="post-header-admin">
+                <div>
+                    <h3 class="post-title-admin">${post.title}</h3>
+                    <div class="post-meta-admin">
+                        Par ${post.author} • ${post.date} • ${post.level}
+                    </div>
+                </div>
+                <span class="post-category">${post.subject}</span>
+            </div>
+            <div class="post-content-admin">${post.content}</div>
+            <div class="post-actions-admin">
+                <div class="post-stats">
+                    <span>👍 ${post.likes}</span>
+                    <span>💬 ${post.replies}</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-icon btn-view" onclick="viewPost(${post.id})" title="Voir">👁️</button>
+                    <button class="btn-icon btn-edit" onclick="editPost(${post.id})" title="Modifier">✏️</button>
+                    <button class="btn-icon btn-delete" onclick="deletePost(${post.id})" title="Supprimer">🗑️</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadAdminMentorships() {
+    const tableBody = document.getElementById('mentorshipsTableBody');
+    tableBody.innerHTML = adminMentorships.map(mentorship => `
+        <tr>
+            <td><strong>${mentorship.mentor}</strong></td>
+            <td>${mentorship.student}</td>
+            <td>${mentorship.subject}</td>
+            <td>
+                <span class="status-badge status-${mentorship.status}">
+                    ${mentorship.status === 'active' ? 'Actif' : mentorship.status === 'pending' ? 'En attente' : 'Terminé'}
+                </span>
+            </td>
+            <td>${new Date(mentorship.startDate).toLocaleDateString('fr-FR')}</td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px;">
+                        <div style="width: ${mentorship.progress}%; height: 100%; background: #10b981; border-radius: 4px;"></div>
+                    </div>
+                    <span style="font-size: 0.8rem;">${mentorship.progress}%</span>
+                </div>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-icon btn-view" onclick="viewMentorship(${mentorship.id})" title="Voir">👁️</button>
+                    <button class="btn-icon btn-edit" onclick="editMentorship(${mentorship.id})" title="Modifier">✏️</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function loadAdminReports() {
+    const reportsList = document.getElementById('reportsList');
+    reportsList.innerHTML = adminReports.map(report => `
+        <div class="report-card ${report.urgent ? 'urgent' : ''} ${report.status === 'resolved' ? 'resolved' : ''}">
+            <div class="report-header">
+                <div>
+                    <span class="report-type">${report.type === 'spam' ? 'Spam' : report.type === 'inappropriate' ? 'Contenu inapproprié' : 'Harcèlement'}</span>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                        Signalé par ${report.reporter} • ${new Date(report.date).toLocaleDateString('fr-FR')}
+                    </div>
+                </div>
+                <span class="status-badge status-${report.status}">
+                    ${report.status === 'pending' ? 'En attente' : report.status === 'resolved' ? 'Traité' : 'Rejeté'}
+                </span>
+            </div>
+            <div class="report-content">${report.content}</div>
+            <div class="report-actions">
+                <button class="btn btn-primary" onclick="resolveReport(${report.id})">Traiter</button>
+                <button class="btn btn-outline" onclick="dismissReport(${report.id})">Rejeter</button>
+                <button class="btn btn-outline" onclick="viewReportDetails(${report.id})">Détails</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Fonctions d'action admin
+function showAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'block';
+}
+
+function editUser(userId) {
+    const user = adminUsers.find(u => u.id === userId);
+    if (user) {
+        document.getElementById('editUserId').value = user.id;
+        document.getElementById('editUserFirstName').value = user.firstName;
+        document.getElementById('editUserLastName').value = user.lastName;
+        document.getElementById('editUserEmail').value = user.email;
+        document.getElementById('editUserTypeAdmin').value = user.type;
+        document.getElementById('editUserStatus').value = user.status;
+        document.getElementById('editUserModal').style.display = 'block';
+    }
+}
+
+function deleteUser(userId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+        const index = adminUsers.findIndex(u => u.id === userId);
+        if (index > -1) {
+            adminUsers.splice(index, 1);
+            loadAdminUsers();
+            showNotification('Utilisateur supprimé avec succès', 'success');
+        }
+    }
+}
+
+function viewUser(userId) {
+    const user = adminUsers.find(u => u.id === userId);
+    if (user) {
+        showNotification(`Consultation du profil de ${user.firstName} ${user.lastName}`, 'info');
+    }
+}
+
+function viewPost(postId) {
+    showNotification(`Consultation du post #${postId}`, 'info');
+}
+
+function editPost(postId) {
+    showNotification(`Édition du post #${postId}`, 'info');
+}
+
+function deletePost(postId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
+        const index = samplePosts.findIndex(p => p.id === postId);
+        if (index > -1) {
+            samplePosts.splice(index, 1);
+            loadAdminPosts();
+            showNotification('Post supprimé avec succès', 'success');
+        }
+    }
+}
+
+function viewMentorship(mentorshipId) {
+    showNotification(`Consultation du mentorat #${mentorshipId}`, 'info');
+}
+
+function editMentorship(mentorshipId) {
+    showNotification(`Édition du mentorat #${mentorshipId}`, 'info');
+}
+
+function resolveReport(reportId) {
+    const report = adminReports.find(r => r.id === reportId);
+    if (report) {
+        report.status = 'resolved';
+        loadAdminReports();
+        showNotification('Signalement traité avec succès', 'success');
+    }
+}
+
+function dismissReport(reportId) {
+    const report = adminReports.find(r => r.id === reportId);
+    if (report) {
+        report.status = 'dismissed';
+        loadAdminReports();
+        showNotification('Signalement rejeté', 'info');
+    }
+}
+
+function viewReportDetails(reportId) {
+    showNotification(`Détails du signalement #${reportId}`, 'info');
+}
+
+function manageAnnales() {
+    showNotification('Gestion des annales - Fonctionnalité en développement', 'info');
+}
+
+function manageMetiers() {
+    showNotification('Gestion des métiers - Fonctionnalité en développement', 'info');
+}
+
+function manageResultats() {
+    showNotification('Gestion des résultats - Fonctionnalité en développement', 'info');
+}
+
+function manageSubjects() {
+    showNotification('Gestion des matières - Fonctionnalité en développement', 'info');
+}
+
+// Initialiser l'admin au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    // Si on est sur l'admin, charger le dashboard
+    if (currentSection === 'admin' && currentUser && currentUser.type === 'admin') {
+        loadAdminDashboard();
+    }
+});
 }

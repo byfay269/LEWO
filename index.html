@@ -18,6 +18,7 @@
                 <a href="#annales" class="nav-link auth-required">Annales</a>
                 <a href="#resultats" class="nav-link auth-required">Résultats</a>
                 <a href="#metiers" class="nav-link auth-required">Métiers</a>
+                <a href="#admin" class="nav-link admin-only">Administration</a>
                 <a href="#profil" class="nav-link">Mon Profil</a>
             </nav>
             <div class="auth-buttons">
@@ -245,6 +246,220 @@
             </div>
         </section>
 
+        <!-- Section Administration -->
+        <section id="admin" class="section">
+            <div class="container">
+                <div class="admin-header">
+                    <h2>🛠️ Panneau d'Administration</h2>
+                    <p>Gestion complète de la plateforme LEWO</p>
+                </div>
+
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="showAdminTab('dashboard')">📊 Tableau de bord</button>
+                    <button class="admin-tab" onclick="showAdminTab('users')">👥 Utilisateurs</button>
+                    <button class="admin-tab" onclick="showAdminTab('posts')">📝 Posts</button>
+                    <button class="admin-tab" onclick="showAdminTab('mentorships')">🎓 Mentorships</button>
+                    <button class="admin-tab" onclick="showAdminTab('reports')">⚠️ Signalements</button>
+                    <button class="admin-tab" onclick="showAdminTab('content')">📚 Contenu</button>
+                </div>
+
+                <!-- Dashboard -->
+                <div id="admin-dashboard" class="admin-content active">
+                    <div class="dashboard-stats">
+                        <div class="stat-card-admin">
+                            <h3>Utilisateurs totaux</h3>
+                            <div class="stat-value" id="totalUsers">0</div>
+                            <div class="stat-trend">+12 cette semaine</div>
+                        </div>
+                        <div class="stat-card-admin">
+                            <h3>Posts publiés</h3>
+                            <div class="stat-value" id="totalPosts">0</div>
+                            <div class="stat-trend">+5 aujourd'hui</div>
+                        </div>
+                        <div class="stat-card-admin">
+                            <h3>Mentorships actifs</h3>
+                            <div class="stat-value" id="activeMentorships">0</div>
+                            <div class="stat-trend">+3 cette semaine</div>
+                        </div>
+                        <div class="stat-card-admin">
+                            <h3>Signalements</h3>
+                            <div class="stat-value" id="pendingReports">0</div>
+                            <div class="stat-trend">2 en attente</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-charts">
+                        <div class="chart-container">
+                            <h3>Activité récente</h3>
+                            <div class="activity-list" id="recentActivity">
+                                <!-- Activités récentes -->
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Utilisateurs par niveau</h3>
+                            <div class="level-distribution" id="levelDistribution">
+                                <!-- Distribution par niveau -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestion des utilisateurs -->
+                <div id="admin-users" class="admin-content">
+                    <div class="admin-controls">
+                        <div class="search-bar">
+                            <input type="text" placeholder="Rechercher un utilisateur..." id="userSearch">
+                            <select id="userTypeFilter">
+                                <option value="">Tous les types</option>
+                                <option value="student">Étudiants</option>
+                                <option value="mentor">Mentors</option>
+                                <option value="admin">Administrateurs</option>
+                            </select>
+                            <select id="userStatusFilter">
+                                <option value="">Tous les statuts</option>
+                                <option value="active">Actifs</option>
+                                <option value="inactive">Inactifs</option>
+                                <option value="banned">Bannis</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="showAddUserModal()">
+                            ➕ Ajouter un utilisateur
+                        </button>
+                    </div>
+
+                    <div class="users-table-container">
+                        <table class="admin-table" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Type</th>
+                                    <th>Niveau</th>
+                                    <th>Statut</th>
+                                    <th>Inscription</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Les utilisateurs seront chargés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Gestion des posts -->
+                <div id="admin-posts" class="admin-content">
+                    <div class="admin-controls">
+                        <div class="search-bar">
+                            <input type="text" placeholder="Rechercher un post..." id="postSearch">
+                            <select id="postCategoryFilter">
+                                <option value="">Toutes les catégories</option>
+                                <option value="question">Questions</option>
+                                <option value="exercise">Exercices</option>
+                                <option value="discussion">Discussions</option>
+                            </select>
+                            <select id="postStatusFilter">
+                                <option value="">Tous les statuts</option>
+                                <option value="published">Publiés</option>
+                                <option value="moderated">Modérés</option>
+                                <option value="deleted">Supprimés</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="posts-grid-admin" id="adminPostsGrid">
+                        <!-- Les posts seront chargés ici -->
+                    </div>
+                </div>
+
+                <!-- Gestion des mentorships -->
+                <div id="admin-mentorships" class="admin-content">
+                    <div class="mentorships-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">15</span>
+                            <span class="stat-label">Actifs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">8</span>
+                            <span class="stat-label">En attente</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">23</span>
+                            <span class="stat-label">Terminés</span>
+                        </div>
+                    </div>
+
+                    <div class="mentorships-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Mentor</th>
+                                    <th>Élève</th>
+                                    <th>Matière</th>
+                                    <th>Statut</th>
+                                    <th>Début</th>
+                                    <th>Progression</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mentorshipsTableBody">
+                                <!-- Les mentorships seront chargés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Gestion des signalements -->
+                <div id="admin-reports" class="admin-content">
+                    <div class="reports-filters">
+                        <select id="reportStatusFilter">
+                            <option value="">Tous les signalements</option>
+                            <option value="pending">En attente</option>
+                            <option value="reviewed">Traités</option>
+                            <option value="dismissed">Rejetés</option>
+                        </select>
+                        <select id="reportTypeFilter">
+                            <option value="">Tous les types</option>
+                            <option value="spam">Spam</option>
+                            <option value="inappropriate">Contenu inapproprié</option>
+                            <option value="harassment">Harcèlement</option>
+                        </select>
+                    </div>
+
+                    <div class="reports-list" id="reportsList">
+                        <!-- Les signalements seront chargés ici -->
+                    </div>
+                </div>
+
+                <!-- Gestion du contenu -->
+                <div id="admin-content" class="admin-content">
+                    <div class="content-sections">
+                        <div class="content-section">
+                            <h3>📚 Annales</h3>
+                            <p>Gérer les annales d'examens</p>
+                            <button class="btn btn-primary" onclick="manageAnnales()">Gérer</button>
+                        </div>
+                        <div class="content-section">
+                            <h3>🎯 Métiers</h3>
+                            <p>Gérer les fiches métiers</p>
+                            <button class="btn btn-primary" onclick="manageMetiers()">Gérer</button>
+                        </div>
+                        <div class="content-section">
+                            <h3>📊 Résultats</h3>
+                            <p>Gérer les résultats d'examens</p>
+                            <button class="btn btn-primary" onclick="manageResultats()">Gérer</button>
+                        </div>
+                        <div class="content-section">
+                            <h3>🏫 Matières</h3>
+                            <p>Gérer les matières disponibles</p>
+                            <button class="btn btn-primary" onclick="manageSubjects()">Gérer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Section Profil -->
         <section id="profil" class="section">
             <div class="container">
@@ -405,6 +620,70 @@
                     </div>
                 </div>
                 
+                <button type="submit" class="btn btn-primary btn-full">Enregistrer les modifications</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modales Admin -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter un utilisateur</h3>
+                <span class="close" onclick="closeModal('addUserModal')">&times;</span>
+            </div>
+            <form class="admin-form" id="addUserForm">
+                <div class="form-row">
+                    <input type="text" placeholder="Prénom" required>
+                    <input type="text" placeholder="Nom" required>
+                </div>
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Mot de passe temporaire" required>
+                <select required>
+                    <option value="">Type d'utilisateur</option>
+                    <option value="student">Élève/Étudiant</option>
+                    <option value="mentor">Mentor</option>
+                    <option value="admin">Administrateur</option>
+                </select>
+                <select required>
+                    <option value="">Niveau d'études</option>
+                    <option value="college">Collège</option>
+                    <option value="lycee">Lycée</option>
+                    <option value="universite">Université</option>
+                    <option value="professionnel">Professionnel</option>
+                </select>
+                <input type="text" placeholder="Institution">
+                <textarea placeholder="Biographie"></textarea>
+                <button type="submit" class="btn btn-primary btn-full">Créer l'utilisateur</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier l'utilisateur</h3>
+                <span class="close" onclick="closeModal('editUserModal')">&times;</span>
+            </div>
+            <form class="admin-form" id="editUserForm">
+                <input type="hidden" id="editUserId">
+                <div class="form-row">
+                    <input type="text" id="editUserFirstName" placeholder="Prénom" required>
+                    <input type="text" id="editUserLastName" placeholder="Nom" required>
+                </div>
+                <input type="email" id="editUserEmail" placeholder="Email" required>
+                <select id="editUserTypeAdmin" required>
+                    <option value="">Type d'utilisateur</option>
+                    <option value="student">Élève/Étudiant</option>
+                    <option value="mentor">Mentor</option>
+                    <option value="admin">Administrateur</option>
+                </select>
+                <select id="editUserStatus" required>
+                    <option value="">Statut</option>
+                    <option value="active">Actif</option>
+                    <option value="inactive">Inactif</option>
+                    <option value="banned">Banni</option>
+                </select>
                 <button type="submit" class="btn btn-primary btn-full">Enregistrer les modifications</button>
             </form>
         </div>
