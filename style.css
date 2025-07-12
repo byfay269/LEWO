@@ -483,11 +483,12 @@ body {
 @media (max-width: 768px) {
     .header {
         padding: 0.75rem 0;
+        position: relative;
     }
     
     .header .container {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
         align-items: stretch;
     }
 
@@ -495,16 +496,31 @@ body {
         justify-content: center;
         gap: 0.5rem;
         flex-wrap: wrap;
+        order: 2;
     }
     
     .nav-link {
         padding: 0.5rem 0.75rem;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        flex: 1;
+        min-width: auto;
+        text-align: center;
     }
 
     .auth-buttons {
         justify-content: center;
         gap: 0.75rem;
+        order: 3;
+        flex-wrap: wrap;
+    }
+
+    .auth-buttons .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+
+    .main {
+        margin-top: 140px;
     }
 
     .hero {
@@ -1064,11 +1080,15 @@ body {
     .exam-tabs {
         justify-content: flex-start;
         gap: 0.25rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
     }
     
     .exam-tab-btn {
         padding: 0.75rem 1rem;
         font-size: 0.9rem;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
     
     .resultats-filters {
@@ -1082,11 +1102,47 @@ body {
     
     .resultats-table {
         font-size: 0.9rem;
+        overflow-x: auto;
+        display: block;
     }
     
+    .resultats-table thead,
+    .resultats-table tbody,
     .resultats-table th,
+    .resultats-table td,
+    .resultats-table tr {
+        display: block;
+    }
+    
+    .resultats-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .resultats-table tr {
+        border: 1px solid #e5e7eb;
+        margin-bottom: 0.5rem;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
     .resultats-table td {
-        padding: 0.75rem 0.5rem;
+        border: none;
+        position: relative;
+        padding: 0.5rem 0;
+        padding-left: 50%;
+    }
+    
+    .resultats-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 6px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+        color: #374151;
     }
 }
 

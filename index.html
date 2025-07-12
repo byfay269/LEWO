@@ -170,9 +170,9 @@
 
                 <div class="resultats-tabs">
                     <div class="exam-tabs">
-                        <button class="exam-tab-btn active" onclick="showExamResults('bac')">🎓 BAC</button>
-                        <button class="exam-tab-btn" onclick="showExamResults('bepc')">📚 BEPC</button>
-                        <button class="exam-tab-btn" onclick="showExamResults('concours')">🏆 Concours 6ème</button>
+                        <button class="exam-tab-btn active" onclick="showExamResults('bac', this)">🎓 BAC</button>
+                        <button class="exam-tab-btn" onclick="showExamResults('bepc', this)">📚 BEPC</button>
+                        <button class="exam-tab-btn" onclick="showExamResults('concours', this)">🏆 Concours 6ème</button>
                     </div>
                 </div>
 
@@ -231,12 +231,12 @@
 
                 <div class="metiers-categories">
                     <div class="category-tabs">
-                        <button class="tab-btn active" onclick="showMetierCategory('tous')">Tous les métiers</button>
-                        <button class="tab-btn" onclick="showMetierCategory('sciences')">Sciences & Tech</button>
-                        <button class="tab-btn" onclick="showMetierCategory('sante')">Santé</button>
-                        <button class="tab-btn" onclick="showMetierCategory('education')">Éducation</button>
-                        <button class="tab-btn" onclick="showMetierCategory('commerce')">Commerce</button>
-                        <button class="tab-btn" onclick="showMetierCategory('art')">Arts & Culture</button>
+                        <button class="tab-btn active" onclick="showMetierCategory('tous', this)">Tous les métiers</button>
+                        <button class="tab-btn" onclick="showMetierCategory('sciences', this)">Sciences & Tech</button>
+                        <button class="tab-btn" onclick="showMetierCategory('sante', this)">Santé</button>
+                        <button class="tab-btn" onclick="showMetierCategory('education', this)">Éducation</button>
+                        <button class="tab-btn" onclick="showMetierCategory('commerce', this)">Commerce</button>
+                        <button class="tab-btn" onclick="showMetierCategory('art', this)">Arts & Culture</button>
                     </div>
                 </div>
 
@@ -255,12 +255,12 @@
                 </div>
 
                 <div class="admin-tabs">
-                    <button class="admin-tab active" onclick="showAdminTab('dashboard')">📊 Tableau de bord</button>
-                    <button class="admin-tab" onclick="showAdminTab('users')">👥 Utilisateurs</button>
-                    <button class="admin-tab" onclick="showAdminTab('posts')">📝 Posts</button>
-                    <button class="admin-tab" onclick="showAdminTab('mentorships')">🎓 Mentorships</button>
-                    <button class="admin-tab" onclick="showAdminTab('reports')">⚠️ Signalements</button>
-                    <button class="admin-tab" onclick="showAdminTab('content')">📚 Contenu</button>
+                    <button class="admin-tab active" onclick="showAdminTab('dashboard', this)">📊 Tableau de bord</button>
+                    <button class="admin-tab" onclick="showAdminTab('users', this)">👥 Utilisateurs</button>
+                    <button class="admin-tab" onclick="showAdminTab('posts', this)">📝 Posts</button>
+                    <button class="admin-tab" onclick="showAdminTab('mentorships', this)">🎓 Mentorships</button>
+                    <button class="admin-tab" onclick="showAdminTab('reports', this)">⚠️ Signalements</button>
+                    <button class="admin-tab" onclick="showAdminTab('content', this)">📚 Contenu</button>
                 </div>
 
                 <!-- Dashboard -->

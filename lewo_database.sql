@@ -727,8 +727,360 @@ CREATE TRIGGER comments_counter AFTER INSERT OR UPDATE ON comments
 -- SELECT * FROM popular_posts LIMIT 5;
 
 -- =================================================================
--- FIN DU SCRIPT
+-- TABLES SUPPLÉMENTAIRES POUR ANNALES ET RÉSULTATS
 -- =================================================================
+
+-- Table des annales d'examens
+CREATE TABLE annales (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    year INTEGER NOT NULL CHECK (year BETWEEN 1990 AND 2030),
+    exam_type VARCHAR(50) NOT NULL CHECK (exam_type IN ('bac', 'bepc', 'bts', 'licence', 'concours')),
+    subject_id INTEGER REFERENCES subjects(id),
+    education_level VARCHAR(50) CHECK (education_level IN ('college', 'lycee', 'universite', 'professionnel')),
+    serie VARCHAR(10), -- Pour BAC : C, D, L, S, etc.
+    difficulty_level VARCHAR(20) CHECK (difficulty_level IN ('facile', 'moyen', 'difficile', 'tres_difficile')),
+    file_url VARCHAR(500),
+    file_size INTEGER, -- en bytes
+    page_count INTEGER,
+    download_count INTEGER DEFAULT 0,
+    is_with_correction BOOLEAN DEFAULT FALSE,
+    correction_file_url VARCHAR(500),
+    uploaded_by INTEGER REFERENCES users(id),
+    is_approved BOOLEAN DEFAULT FALSE,
+    approved_by INTEGER REFERENCES users(id),
+    approved_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des résultats d'examens
+CREATE TABLE exam_results (
+    id SERIAL PRIMARY KEY,
+    exam_type VARCHAR(50) NOT NULL CHECK (exam_type IN ('bac', 'bepc', 'concours_6eme')),
+    year INTEGER NOT NULL CHECK (year BETWEEN 2000 AND 2030),
+    student_name VARCHAR(255) NOT NULL,
+    student_number VARCHAR(50) NOT NULL,
+    region VARCHAR(50) CHECK (region IN ('ngazidja', 'ndzuani', 'mwali')),
+    -- Champs spécifiques au BAC
+    serie VARCHAR(10), -- C, D, L, S, etc.
+    -- Champs spécifiques au BEPC
+    establishment VARCHAR(255),
+    -- Champs spécifiques au concours 6ème
+    origin_school VARCHAR(255),
+    -- Champs communs
+    average_score DECIMAL(4,2),
+    final_score DECIMAL(4,2),
+    rank_position INTEGER,
+    mention VARCHAR(50) CHECK (mention IN ('tres_bien', 'bien', 'assez_bien', 'passable', 'none')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('admitted', 'failed', 'pending')),
+    session_type VARCHAR(20) DEFAULT 'principale' CHECK (session_type IN ('principale', 'rattrapage')),
+    -- Métadonnées
+    published_by INTEGER REFERENCES users(id),
+    is_official BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Index composite pour recherches rapides
+    UNIQUE(exam_type, year, student_number)
+);
+
+-- Table des métiers et carrières
+CREATE TABLE careers (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL, -- sciences, sante, education, commerce, art, etc.
+    description TEXT NOT NULL,
+    required_education VARCHAR(100), -- Bac+2, Bac+5, etc.
+    salary_range_min INTEGER,
+    salary_range_max INTEGER,
+    currency VARCHAR(10) DEFAULT 'EUR',
+    skills JSONB DEFAULT '[]', -- Compétences requises
+    sectors JSONB DEFAULT '[]', -- Secteurs d'activité
+    job_prospects TEXT, -- Perspectives d'emploi
+    typical_day TEXT, -- Journée type
+    work_environment TEXT, -- Environnement de travail
+    training_path TEXT, -- Parcours de formation
+    similar_jobs JSONB DEFAULT '[]', -- Métiers similaires
+    icon_emoji VARCHAR(10),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des téléchargements d'annales (tracking)
+CREATE TABLE annale_downloads (
+    id SERIAL PRIMARY KEY,
+    annale_id INTEGER NOT NULL REFERENCES annales(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id), -- NULL si téléchargement anonyme
+    download_type VARCHAR(20) DEFAULT 'annale' CHECK (download_type IN ('annale', 'correction')),
+    ip_address INET,
+    user_agent TEXT,
+    downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des évaluations d'annales
+CREATE TABLE annale_ratings (
+    id SERIAL PRIMARY KEY,
+    annale_id INTEGER NOT NULL REFERENCES annales(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    is_helpful BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(annale_id, user_id)
+);
+
+-- Table des favoris utilisateurs
+CREATE TABLE user_favorites (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_type VARCHAR(20) NOT NULL CHECK (item_type IN ('post', 'annale', 'career', 'mentor')),
+    item_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, item_type, item_id)
+);
+
+-- Table des statistiques du site
+CREATE TABLE site_statistics (
+    id SERIAL PRIMARY KEY,
+    date DATE NOT NULL UNIQUE,
+    total_users INTEGER DEFAULT 0,
+    active_users INTEGER DEFAULT 0,
+    new_registrations INTEGER DEFAULT 0,
+    total_posts INTEGER DEFAULT 0,
+    new_posts INTEGER DEFAULT 0,
+    total_comments INTEGER DEFAULT 0,
+    new_comments INTEGER DEFAULT 0,
+    total_mentorships INTEGER DEFAULT 0,
+    active_mentorships INTEGER DEFAULT 0,
+    total_downloads INTEGER DEFAULT 0,
+    new_downloads INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =================================================================
+-- INDEX SUPPLÉMENTAIRES
+-- =================================================================
+
+-- Index pour les annales
+CREATE INDEX idx_annales_year ON annales(year);
+CREATE INDEX idx_annales_exam_type ON annales(exam_type);
+CREATE INDEX idx_annales_subject ON annales(subject_id);
+CREATE INDEX idx_annales_approved ON annales(is_approved);
+CREATE INDEX idx_annales_search ON annales USING gin(to_tsvector('french', title || ' ' || COALESCE(description, '')));
+
+-- Index pour les résultats
+CREATE INDEX idx_exam_results_type_year ON exam_results(exam_type, year);
+CREATE INDEX idx_exam_results_region ON exam_results(region);
+CREATE INDEX idx_exam_results_status ON exam_results(status);
+CREATE INDEX idx_exam_results_search ON exam_results(student_name, student_number);
+
+-- Index pour les carrières
+CREATE INDEX idx_careers_category ON careers(category);
+CREATE INDEX idx_careers_active ON careers(is_active);
+CREATE INDEX idx_careers_search ON careers USING gin(to_tsvector('french', title || ' ' || description));
+
+-- Index pour les téléchargements
+CREATE INDEX idx_downloads_annale ON annale_downloads(annale_id);
+CREATE INDEX idx_downloads_user ON annale_downloads(user_id);
+CREATE INDEX idx_downloads_date ON annale_downloads(downloaded_at);
+
+-- =================================================================
+-- VUES SUPPLÉMENTAIRES
+-- =================================================================
+
+-- Vue pour les annales populaires
+CREATE OR REPLACE VIEW popular_annales AS
+SELECT 
+    a.id,
+    a.title,
+    a.year,
+    a.exam_type,
+    s.name AS subject_name,
+    a.download_count,
+    AVG(ar.rating) AS average_rating,
+    COUNT(ar.id) AS rating_count,
+    a.created_at
+FROM annales a
+LEFT JOIN subjects s ON a.subject_id = s.id
+LEFT JOIN annale_ratings ar ON a.id = ar.annale_id
+WHERE a.is_approved = TRUE
+GROUP BY a.id, a.title, a.year, a.exam_type, s.name, a.download_count, a.created_at
+ORDER BY (a.download_count * 0.7 + COALESCE(AVG(ar.rating), 0) * 20) DESC;
+
+-- Vue pour les statistiques des résultats par région
+CREATE OR REPLACE VIEW results_by_region AS
+SELECT 
+    region,
+    exam_type,
+    year,
+    COUNT(*) AS total_candidates,
+    COUNT(CASE WHEN status = 'admitted' THEN 1 END) AS admitted_count,
+    ROUND(
+        COUNT(CASE WHEN status = 'admitted' THEN 1 END) * 100.0 / COUNT(*), 
+        2
+    ) AS success_rate,
+    AVG(average_score) AS avg_score
+FROM exam_results
+WHERE region IS NOT NULL
+GROUP BY region, exam_type, year
+ORDER BY year DESC, region;
+
+-- Vue pour les carrières par catégorie
+CREATE OR REPLACE VIEW careers_by_category AS
+SELECT 
+    category,
+    COUNT(*) AS total_careers,
+    AVG(salary_range_min) AS avg_min_salary,
+    AVG(salary_range_max) AS avg_max_salary,
+    COUNT(CASE WHEN required_education LIKE '%Bac+2%' THEN 1 END) AS bac_plus_2,
+    COUNT(CASE WHEN required_education LIKE '%Bac+3%' THEN 1 END) AS bac_plus_3,
+    COUNT(CASE WHEN required_education LIKE '%Bac+5%' THEN 1 END) AS bac_plus_5
+FROM careers
+WHERE is_active = TRUE
+GROUP BY category
+ORDER BY total_careers DESC;
+
+-- =================================================================
+-- FONCTIONS SUPPLÉMENTAIRES
+-- =================================================================
+
+-- Fonction pour mettre à jour les statistiques quotidiennes
+CREATE OR REPLACE FUNCTION update_daily_statistics()
+RETURNS VOID AS $$
+DECLARE
+    today_date DATE := CURRENT_DATE;
+BEGIN
+    INSERT INTO site_statistics (
+        date,
+        total_users,
+        active_users,
+        new_registrations,
+        total_posts,
+        new_posts,
+        total_comments,
+        new_comments,
+        total_mentorships,
+        active_mentorships,
+        total_downloads,
+        new_downloads
+    )
+    VALUES (
+        today_date,
+        (SELECT COUNT(*) FROM users WHERE is_active = TRUE),
+        (SELECT COUNT(*) FROM users WHERE is_active = TRUE AND last_login >= today_date - INTERVAL '30 days'),
+        (SELECT COUNT(*) FROM users WHERE DATE(created_at) = today_date),
+        (SELECT COUNT(*) FROM posts WHERE is_deleted = FALSE),
+        (SELECT COUNT(*) FROM posts WHERE DATE(created_at) = today_date AND is_deleted = FALSE),
+        (SELECT COUNT(*) FROM comments WHERE is_deleted = FALSE),
+        (SELECT COUNT(*) FROM comments WHERE DATE(created_at) = today_date AND is_deleted = FALSE),
+        (SELECT COUNT(*) FROM mentorships),
+        (SELECT COUNT(*) FROM mentorships WHERE status = 'active'),
+        (SELECT COUNT(*) FROM annale_downloads),
+        (SELECT COUNT(*) FROM annale_downloads WHERE DATE(downloaded_at) = today_date)
+    )
+    ON CONFLICT (date) DO UPDATE SET
+        total_users = EXCLUDED.total_users,
+        active_users = EXCLUDED.active_users,
+        new_registrations = EXCLUDED.new_registrations,
+        total_posts = EXCLUDED.total_posts,
+        new_posts = EXCLUDED.new_posts,
+        total_comments = EXCLUDED.total_comments,
+        new_comments = EXCLUDED.new_comments,
+        total_mentorships = EXCLUDED.total_mentorships,
+        active_mentorships = EXCLUDED.active_mentorships,
+        total_downloads = EXCLUDED.total_downloads,
+        new_downloads = EXCLUDED.new_downloads;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour incrémenter le compteur de téléchargements
+CREATE OR REPLACE FUNCTION increment_download_counter()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE annales 
+    SET download_count = download_count + 1 
+    WHERE id = NEW.annale_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger pour incrémenter automatiquement les téléchargements
+CREATE TRIGGER annale_download_counter 
+AFTER INSERT ON annale_downloads
+FOR EACH ROW EXECUTE FUNCTION increment_download_counter();
+
+-- =================================================================
+-- DONNÉES D'EXEMPLE SUPPLÉMENTAIRES
+-- =================================================================
+
+-- Insertion d'annales d'exemple
+INSERT INTO annales (title, description, year, exam_type, subject_id, education_level, serie, difficulty_level, page_count, is_with_correction, uploaded_by, is_approved, approved_by, approved_at) VALUES
+('Baccalauréat Mathématiques Série C - Session 2024', 'Sujet complet de mathématiques avec exercices d''algèbre et de géométrie', 2024, 'bac', 1, 'lycee', 'C', 'difficile', 8, TRUE, 1, TRUE, 1, CURRENT_TIMESTAMP),
+('BEPC Français - Épreuve 2023', 'Sujet de français avec analyse de texte et expression écrite', 2023, 'bepc', 2, 'college', NULL, 'moyen', 6, TRUE, 1, TRUE, 1, CURRENT_TIMESTAMP),
+('Concours d''entrée en 6ème - Mathématiques 2024', 'Épreuve de mathématiques pour l''entrée au collège', 2024, 'concours', 1, 'college', NULL, 'moyen', 4, TRUE, 1, TRUE, 1, CURRENT_TIMESTAMP);
+
+-- Insertion de résultats d'exemple
+INSERT INTO exam_results (exam_type, year, student_name, student_number, region, serie, establishment, origin_school, average_score, final_score, rank_position, mention, status) VALUES
+('bac', 2024, 'AHMED Said Ibrahim', 'BAC2024001', 'ngazidja', 'C', NULL, NULL, 16.75, 16.75, 1, 'tres_bien', 'admitted'),
+('bac', 2024, 'FATIMA Aïcha Mohamed', 'BAC2024002', 'ndzuani', 'D', NULL, NULL, 14.25, 14.25, 15, 'bien', 'admitted'),
+('bepc', 2024, 'MOHAMED Anli Said', 'BEPC2024001', 'ngazidja', NULL, 'Collège de Moroni', NULL, 13.80, 13.80, 5, 'bien', 'admitted'),
+('concours_6eme', 2024, 'AMINA Saïd Omar', 'CONC2024001', 'ngazidja', NULL, NULL, 'EPP Moroni Centre', 18.5, 18.5, 1, 'tres_bien', 'admitted');
+
+-- Insertion de carrières d'exemple
+INSERT INTO careers (title, category, description, required_education, salary_range_min, salary_range_max, skills, sectors, icon_emoji, created_by) VALUES
+('Développeur Web', 'sciences', 'Création et maintenance de sites web et applications', 'Bac+2 à Bac+5', 35000, 60000, '["HTML/CSS", "JavaScript", "Frameworks", "Git"]', '["Tech", "E-commerce", "Médias"]', '💻', 1),
+('Infirmier(e)', 'sante', 'Soins et accompagnement des patients dans différents services', 'Bac+3 (IFSI)', 28000, 45000, '["Soins", "Empathie", "Rigueur", "Communication"]', '["Hôpital", "Clinique", "Libéral"]', '🏥', 1),
+('Professeur', 'education', 'Enseignement et formation des élèves', 'Bac+5 (Master MEEF)', 30000, 55000, '["Pédagogie", "Communication", "Discipline", "Patience"]', '["Éducation nationale", "Privé", "Formation"]', '🎓', 1);
+
+-- =================================================================
+-- CONFIGURATION FINALE
+-- =================================================================
+
+-- Configuration de la recherche textuelle en français
+ALTER DATABASE lewo_db SET default_text_search_config = 'french';
+
+-- Création d'un utilisateur applicatif (à adapter selon vos besoins)
+-- CREATE USER lewo_app WITH PASSWORD 'votre_mot_de_passe_securise';
+-- GRANT CONNECT ON DATABASE lewo_db TO lewo_app;
+-- GRANT USAGE ON SCHEMA public TO lewo_app;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO lewo_app;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO lewo_app;
+
+-- =================================================================
+-- FIN DU SCRIPT FINAL
+-- =================================================================
+
+-- Ce script crée maintenant une base de données complète pour LEWO avec :
+-- ✅ Système complet de gestion des utilisateurs et profils
+-- ✅ Mentorat avec matching automatique et suivi des progrès
+-- ✅ Forum collaboratif avec modération et recherche avancée
+-- ✅ Système de messagerie et notifications
+-- ✅ Gestion des annales d'examens avec téléchargements
+-- ✅ Base de données des résultats d'examens officiels
+-- ✅ Catalogue des métiers et carrières
+-- ✅ Système de favoris et évaluations
+-- ✅ Statistiques et analytics complets
+-- ✅ Optimisations de performance (index, vues, fonctions)
+-- ✅ Triggers pour maintenir la cohérence
+-- ✅ Support multilingue (français) pour la recherche
+-- ✅ Sécurité et permissions utilisateurs
+
+COMMENT ON DATABASE lewo_db IS 'Base de données complète de la plateforme LEWO - Mentorat éducatif aux Comores';
+
+-- Statistiques finales
+SELECT 'Base de données LEWO créée avec succès!' AS message,
+       COUNT(*) AS nombre_tables
+FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+
+-- Affichage des tables créées
+SELECT table_name AS "Tables créées"
+FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+ORDER BY table_name;
 
 -- Ce script crée une base de données complète pour LEWO avec :
 -- ✅ Gestion des utilisateurs et profils

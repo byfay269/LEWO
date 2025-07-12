@@ -387,13 +387,25 @@ const adminReports = [
 // Variables pour l'admin
 let currentAdminTab = 'dashboard';
 
+// Gestion d'erreur globale
+window.addEventListener('error', function(e) {
+    console.error('Erreur JavaScript:', e.error);
+    // Éviter que les erreurs bloquent l'application
+    return true;
+});
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-    loadForumPosts();
-    loadMentors();
-    loadAnnales();
-    loadMetiers();
+    try {
+        initializeApp();
+        loadForumPosts();
+        loadMentors();
+        loadAnnales();
+        loadMetiers();
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+        showNotification('Erreur lors du chargement de l\'application', 'error');
+    }
 });
 
 function initializeApp() {
@@ -688,6 +700,13 @@ function updateAuthButtons() {
             link.classList.add('available');
         });
 
+        // Afficher la section admin si l'utilisateur est admin
+        if (currentUser.type === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(link => {
+                link.classList.add('visible');
+            });
+        }
+
         // Mettre à jour le profil
         updateProfileSection();
     }
@@ -749,14 +768,23 @@ function createMetierHTML(metier) {
     `;
 }
 
-function showMetierCategory(category) {
+function showMetierCategory(category, buttonElement = null) {
     currentMetierCategory = category;
 
     // Mettre à jour les boutons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    } else {
+        // Fallback pour trouver le bon bouton
+        const targetButton = document.querySelector(`[onclick*="${category}"]`);
+        if (targetButton) {
+            targetButton.classList.add('active');
+        }
+    }
 
     // Recharger les métiers
     loadMetiers();
@@ -1112,14 +1140,23 @@ function loadResultats() {
     showExamResults('bac');
 }
 
-function showExamResults(examType) {
+function showExamResults(examType, buttonElement = null) {
     currentExamType = examType;
 
     // Mettre à jour les boutons
     document.querySelectorAll('.exam-tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    } else {
+        // Fallback pour trouver le bon bouton
+        const targetButton = document.querySelector(`[onclick*="${examType}"]`);
+        if (targetButton) {
+            targetButton.classList.add('active');
+        }
+    }
 
     // Charger les résultats
     loadExamResults();
@@ -1190,33 +1227,33 @@ function createResultRowHTML(result) {
     switch(currentExamType) {
         case 'bac':
             specificCells = `
-                <td>${result.serie}</td>
-                <td>${result.moyenne}/20</td>
-                <td class="result-mention">${result.mention}</td>
+                <td data-label="Série">${result.serie}</td>
+                <td data-label="Moyenne">${result.moyenne}/20</td>
+                <td data-label="Mention" class="result-mention">${result.mention}</td>
             `;
             break;
         case 'bepc':
             specificCells = `
-                <td>${result.etablissement}</td>
-                <td>${result.moyenne}/20</td>
-                <td class="result-mention">${result.mention}</td>
+                <td data-label="Établissement">${result.etablissement}</td>
+                <td data-label="Moyenne">${result.moyenne}/20</td>
+                <td data-label="Mention" class="result-mention">${result.mention}</td>
             `;
             break;
         case 'concours':
             specificCells = `
-                <td>${result.ecole_origine}</td>
-                <td>${result.note}/20</td>
-                <td>${result.rang}</td>
+                <td data-label="École d'origine">${result.ecole_origine}</td>
+                <td data-label="Note">${result.note}/20</td>
+                <td data-label="Rang">${result.rang}</td>
             `;
             break;
     }
 
     return `
         <tr>
-            <td><strong>${result.name}</strong></td>
-            <td>${result.numero}</td>
+            <td data-label="Nom"><strong>${result.name}</strong></td>
+            <td data-label="Numéro">${result.numero}</td>
             ${specificCells}
-            <td>
+            <td data-label="Statut">
                 <span class="result-status ${result.status}">
                     ${result.status === 'admitted' ? '✅ Admis' : '❌ Ajourné'}
                 </span>
@@ -1276,14 +1313,23 @@ function searchResults() {
 }
 
 // Fonctions d'administration
-function showAdminTab(tabName) {
+function showAdminTab(tabName, buttonElement = null) {
     currentAdminTab = tabName;
 
     // Mettre à jour les onglets
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.classList.remove('active');
     });
-    event.target.classList.add('active');
+    
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    } else {
+        // Fallback pour trouver le bon bouton
+        const targetButton = document.querySelector(`[onclick*="${tabName}"]`);
+        if (targetButton) {
+            targetButton.classList.add('active');
+        }
+    }
 
     // Masquer tous les contenus
     document.querySelectorAll('.admin-content').forEach(content => {
