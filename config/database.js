@@ -21,16 +21,16 @@ pool.getConnection()
     connection.release();
   })
   .catch(err => {
-    console.error('❌ Erreur de connexion MySQL:', err);
+    console.error('❌ Erreur de connexion MySQL:', err.message);
   });
 
 // Fonction utilitaire pour exécuter des requêtes
-const query = async (sql, params) => {
+const query = async (sql, params = []) => {
   try {
     const [results] = await pool.execute(sql, params);
     return { rows: results };
   } catch (error) {
-    console.error('Erreur de requête:', error);
+    console.error('Erreur de requête:', error.message);
     throw error;
   }
 };

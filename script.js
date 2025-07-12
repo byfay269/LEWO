@@ -3,38 +3,497 @@
 // Script principal
 // ====================================
 
-// Variables globales
-let authManager;
+// État global de l'application
 let currentSection = 'accueil';
-let isAuthenticated = false;
 let currentUser = null;
-let currentExamType = 'bac';
+
+// Configuration de l'API
+const API_BASE_URL = window.location.origin + '/api';
+
+// Utilitaires pour la gestion des erreurs
+function handleError(error, context = 'Opération') {
+    console.error('Erreur JavaScript:', error);
+    showNotification(`${context} échouée: ${error.message || 'Erreur inconnue'}`, 'error');
+}
+
+// Notification système
+function showNotification(message, type = 'info', duration = 5000) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" style="margin-left: 10px; background: none; border: none; color: inherit; cursor: pointer;">×</button>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, duration);
+}
+
+// Gestion de l'authentification
+function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.exp * 1000 > Date.now()) {
+                currentUser = payload;
+                updateUIForAuthenticatedUser();
+                return true;
+            } else {
+                logout();
+            }
+        } catch (e) {
+            logout();
+        }
+    }
+    return false;
+}
+
+function updateUIForAuthenticatedUser() {
+    const authButtons = document.querySelector('.auth-buttons');
+    const userMenu = document.querySelector('.user-menu');
+
+    if (authButtons && userMenu) {
+        authButtons.style.display = 'none';
+        userMenu.style.display = 'block';
+
+        const userNameSpan = userMenu.querySelector('.user-name');
+        if (userNameSpan && currentUser) {
+            userNameSpan.textContent = currentUser.email;
+        }
+    }
+}
+
+function logout() {
+    localStorage.removeItem('authToken');
+    currentUser = null;
+    location.reload();
+}
+
+// Navigation
+function showSection(sectionName) {
+    // Masquer toutes les sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+
+    // Afficher la section demandée
+    const targetSection = document.getElementById(sectionName);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+        currentSection = sectionName;
+
+        // Mettre à jour la navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+
+        const activeLink = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+
+        // Charger le contenu spécifique à la section
+        loadSectionContent(sectionName);
+    }
+}
+
+async function loadSectionContent(sectionName) {
+    try {
+        switch (sectionName) {
+            case 'annales':
+                await loadAnnales();
+                break;
+            case 'forum':
+                await loadForum();
+                break;
+            case 'mentors':
+                await loadMentors();
+                break;
+            case 'metiers':
+                await loadMetiers();
+                break;
+            case 'resultats':
+                await loadResultats();
+                break;
+            case 'profil':
+                if (currentUser) {
+                    await loadProfil();
+                } else {
+                    showSection('accueil');
+                    showNotification('Veuillez vous connecter pour accéder à votre profil', 'warning');
+                }
+                break;
+        }
+    } catch (error) {
+        handleError(error, 'Chargement de la section');
+    }
+}
+
+// Chargement des annales
+async function loadAnnales() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/annales`);
+        const annales = await response.json();
+
+        const container = document.getElementById('annales-list');
+        if (container) {
+            container.innerHTML = annales.map(annale => `
+                <div class="annale-card">
+                    <h3>${annale.title}</h3>
+                    <p><strong>Année:</strong> ${annale.year}</p>
+                    <p><strong>Type:</strong> ${annale.exam_type}</p>
+                    <p><strong>Niveau:</strong> ${annale.level}</p>
+                    <p>${annale.description}</p>
+                    <div class="annale-actions">
+                        <button onclick="downloadAnnale(${annale.id}, 'annale')" class="btn btn-primary">
+                            📄 Télécharger l'épreuve
+                        </button>
+                        ${annale.correction_file_url ? `
+                            <button onclick="downloadAnnale(${annale.id}, 'correction')" class="btn btn-secondary">
+                                ✅ Télécharger la correction
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        handleError(error, 'Chargement des annales');
+    }
+}
+
+async function downloadAnnale(annaleId, type) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/annales/${annaleId}/download?type=${type}`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `annale_${annaleId}_${type}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            showNotification('Téléchargement démarré', 'success');
+        } else {
+            throw new Error('Erreur lors du téléchargement');
+        }
+    } catch (error) {
+        handleError(error, 'Téléchargement');
+    }
+}
+
+// Chargement du forum
+async function loadForum() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/forum/posts`);
+        const posts = await response.json();
+
+        const container = document.getElementById('forum-posts');
+        if (container) {
+            container.innerHTML = posts.map(post => `
+                <div class="forum-post">
+                    <div class="post-header">
+                        <h3>${post.title}</h3>
+                        <span class="post-meta">Par ${post.author_name} • ${new Date(post.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div class="post-content">
+                        <p>${post.content}</p>
+                    </div>
+                    <div class="post-actions">
+                        <button onclick="showPostComments(${post.id})" class="btn btn-sm">
+                            💬 ${post.comments_count || 0} commentaires
+                        </button>
+                        <button onclick="likePost(${post.id})" class="btn btn-sm">
+                            👍 ${post.likes_count || 0}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        handleError(error, 'Chargement du forum');
+    }
+}
+
+// Chargement des mentors
+async function loadMentors() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/mentors`);
+        const mentors = await response.json();
+
+        const container = document.getElementById('mentors-list');
+        if (container) {
+            container.innerHTML = mentors.map(mentor => `
+                <div class="mentor-card">
+                    <div class="mentor-info">
+                        <h3>${mentor.name}</h3>
+                        <p><strong>Niveau:</strong> ${mentor.education_level}</p>
+                        <p><strong>Institution:</strong> ${mentor.institution}</p>
+                        <p><strong>Localisation:</strong> ${mentor.location}</p>
+                        <p>${mentor.bio}</p>
+                    </div>
+                    <div class="mentor-actions">
+                        <button onclick="contactMentor(${mentor.id})" class="btn btn-primary">
+                            Contacter
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        handleError(error, 'Chargement des mentors');
+    }
+}
+
+// Chargement des métiers
+async function loadMetiers() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/careers`);
+        const careers = await response.json();
+
+        const container = document.getElementById('careers-list');
+        if (container) {
+            container.innerHTML = careers.map(career => `
+                <div class="career-card">
+                    <div class="career-header">
+                        <span class="career-emoji">${career.icon_emoji || '💼'}</span>
+                        <h3>${career.title}</h3>
+                        <span class="career-category">${career.category}</span>
+                    </div>
+                    <div class="career-content">
+                        <p>${career.description}</p>
+                        <p><strong>Formation requise:</strong> ${career.required_education}</p>
+                        <p><strong>Salaire:</strong> ${career.salary_range_min}€ - ${career.salary_range_max}€</p>
+                    </div>
+                    <div class="career-actions">
+                        <button onclick="showCareerDetails(${career.id})" class="btn btn-primary">
+                            En savoir plus
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        handleError(error, 'Chargement des métiers');
+    }
+}
+
+// Chargement des résultats
+async function loadResultats() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/results`);
+        const results = await response.json();
+
+        const container = document.getElementById('results-list');
+        if (container) {
+            container.innerHTML = results.map(result => `
+                <div class="result-card">
+                    <h3>${result.exam_type} ${result.year}</h3>
+                    <p><strong>Région:</strong> ${result.region}</p>
+                    <p><strong>Taux de réussite:</strong> ${result.success_rate}%</p>
+                    <p><strong>Note moyenne:</strong> ${result.average_score}/20</p>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        handleError(error, 'Chargement des résultats');
+    }
+}
+
+// Chargement du profil
+async function loadProfil() {
+    if (!currentUser) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/profile`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
+
+        if (response.ok) {
+            const profile = await response.json();
+
+            // Remplir le formulaire de profil
+            const form = document.getElementById('profile-form');
+            if (form) {
+                form.firstName.value = profile.first_name || '';
+                form.lastName.value = profile.last_name || '';
+                form.email.value = profile.email || '';
+                form.phone.value = profile.phone || '';
+                form.location.value = profile.location || '';
+                form.institution.value = profile.institution || '';
+                form.bio.value = profile.bio || '';
+            }
+        }
+    } catch (error) {
+        handleError(error, 'Chargement du profil');
+    }
+}
+
+// Gestion des formulaires d'authentification
+function setupAuthForms() {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleLogin();
+        });
+    }
+
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleRegister();
+        });
+    }
+}
+
+async function handleLogin() {
+    try {
+        const form = document.getElementById('login-form');
+        const formData = new FormData(form);
+
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: formData.get('email'),
+                password: formData.get('password')
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem('authToken', data.token);
+            currentUser = JSON.parse(atob(data.token.split('.')[1]));
+            showNotification('Connexion réussie', 'success');
+            closeModal('login-modal');
+            updateUIForAuthenticatedUser();
+        } else {
+            throw new Error(data.message || 'Erreur de connexion');
+        }
+    } catch (error) {
+        handleError(error, 'Connexion');
+    }
+}
+
+async function handleRegister() {
+    try {
+        const form = document.getElementById('register-form');
+        const formData = new FormData(form);
+
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                userType: formData.get('userType'),
+                educationLevel: formData.get('educationLevel')
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Inscription réussie! Vous pouvez maintenant vous connecter.', 'success');
+            closeModal('register-modal');
+            openModal('login-modal');
+        } else {
+            throw new Error(data.message || 'Erreur d\'inscription');
+        }
+    } catch (error) {
+        handleError(error, 'Inscription');
+    }
+}
+
+// Gestion des modales
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Initialisation de l'application
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        checkAuth();
+        setupAuthForms();
+        showSection('accueil');
+        console.log('Application LEWO initialisée avec succès');
+    } catch (error) {
+        handleError(error, 'Initialisation de l\'application');
+    }
+});
+
+// Fermer les modales en cliquant en dehors
+window.addEventListener('click', function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+});
+
+// Utilitaires
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 // ====================================
 // INITIALISATION
 // ====================================
 
-document.addEventListener('DOMContentLoaded', function() {
-    try {
-        console.log('Application LEWO initialisée avec succès');
-        initializeApp();
-    } catch (error) {
-        console.error('Erreur lors de l\'initialisation:', error);
-    }
-});
-
 function initializeApp() {
     // Initialiser les modules
-    authManager = new AuthManager();
-    authManager.init();
     forumManager.init();
     mentorsManager.init();
     contentManager.init();
     profileManager.init();
     adminManager.init();
-    setupEventListeners();
-    checkAuthStatus();
-    authManager.updateAuthButtons();
 
     // Charger la section par défaut
     showSection('accueil');
@@ -82,869 +541,15 @@ function setupModalEvents() {
 // NAVIGATION
 // ====================================
 
-function showSection(sectionName) {
-    // Vérifier l'authentification pour certaines sections
-    const authRequiredSections = ['forum', 'mentors', 'profil', 'admin'];
-
-    if (authRequiredSections.includes(sectionName) && !isAuthenticated) {
-        showNotification('Vous devez être connecté pour accéder à cette section', 'warning');
-        showLogin();
-        return;
-    }
-
-    // Masquer toutes les sections
-    document.querySelectorAll('.content-section').forEach(section => {
-        section.style.display = 'none';
-    });
-
-    // Afficher la section demandée
-    const targetSection = document.getElementById(sectionName);
-    if (targetSection) {
-        targetSection.style.display = 'block';
-        currentSection = sectionName;
-
-        // Mettre à jour la navigation
-        updateNavigation(sectionName);
-
-        // Charger le contenu spécifique
-        loadSectionContent(sectionName);
-    } else {
-        // Charger depuis une page externe
-        loadExternalPage(sectionName);
-    }
-}
-
-function updateNavigation(activeSection) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.getAttribute('data-section') === activeSection) {
-            item.classList.add('active');
-        }
-    });
-}
-
-function loadExternalPage(pageName) {
-    const mainContent = document.querySelector('main');
-
-    fetch(`/pages/${pageName}.html`)
-        .then(response => {
-            if (!response.ok) throw new Error(`Page ${pageName} non trouvée`);
-            return response.text();
-        })
-        .then(html => {
-            mainContent.innerHTML = html;
-            currentSection = pageName;
-
-            // Réinitialiser les événements après chargement
-            setupFormHandlers();
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement de la page:', error);
-            mainContent.innerHTML = `
-                <div class="error-message">
-                    <h2>Erreur 404</h2>
-                    <p>La page "${pageName}" n'a pas été trouvée.</p>
-                    <button onclick="showSection('accueil')" class="btn btn-primary">Retour à l'accueil</button>
-                </div>
-            `;
-        });
-}
-
-function loadSectionContent(sectionName) {
-    switch(sectionName) {
-        case 'accueil':
-            loadAccueil();
-            break;
-        case 'forum':
-            loadForum();
-            break;
-        case 'mentors':
-            loadMentors();
-            break;
-        case 'annales':
-            loadAnnales();
-            break;
-        case 'resultats':
-            loadResultats();
-            break;
-        case 'metiers':
-            loadMetiers();
-            break;
-        case 'profil':
-            loadProfil();
-            break;
-        case 'admin':
-            loadAdmin();
-            break;
-    }
-}
-
-// ====================================
-// CHARGEMENT DES SECTIONS
-// ====================================
-
-function loadAccueil() {
-    // Charger les statistiques et actualités
-    fetchAPI('/api/stats/general')
-        .then(data => {
-            updateAccueilStats(data);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des statistiques:', error);
-        });
-}
-
-function loadForum() {
-    fetchAPI('/api/forum/posts')
-        .then(posts => {
-            displayForumPosts(posts);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement du forum:', error);
-        });
-}
-
-function loadMentors() {
-    fetchAPI('/api/users/mentors')
-        .then(mentors => {
-            displayMentors(mentors);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des mentors:', error);
-        });
-}
-
-function loadAnnales() {
-    fetchAPI('/api/annales')
-        .then(annales => {
-            displayAnnales(annales);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des annales:', error);
-        });
-}
-
-function loadResultats() {
-    // Interface de recherche de résultats
-    const resultatsContainer = document.getElementById('resultats');
-    if (resultatsContainer) {
-        resultatsContainer.innerHTML = `
-            <div class="search-form">
-                <h2>Recherche de résultats d'examens</h2>
-                <form id="resultatsSearchForm">
-                    <div class="form-row">
-                        <input type="text" id="studentName" placeholder="Nom de l'étudiant">
-                        <input type="text" id="studentNumber" placeholder="Numéro d'inscription">
-                    </div>
-                    <div class="form-row">
-                        <select id="examType">
-                            <option value="">Type d'examen</option>
-                            <option value="bac">Baccalauréat</option>
-                            <option value="bepc">BEPC</option>
-                            <option value="concours_6eme">Concours 6ème</option>
-                        </select>
-                        <select id="examYear">
-                            <option value="">Année</option>
-                            ${generateYearOptions()}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Rechercher</button>
-                </form>
-            </div>
-            <div id="resultatsResults"></div>
-        `;
-
-        setupResultatsSearch();
-    }
-}
-
-function loadMetiers() {
-    fetchAPI('/api/careers')
-        .then(careers => {
-            displayCareers(careers);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des métiers:', error);
-        });
-}
-
-function loadProfil() {
-    if (!isAuthenticated) {
-        showLogin();
-        return;
-    }
-
-    fetchAPI('/api/users/profile')
-        .then(profile => {
-            displayUserProfile(profile);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement du profil:', error);
-        });
-}
-
-function loadAdmin() {
-    if (!isAuthenticated || !currentUser || currentUser.type !== 'admin') {
-        showNotification('Accès refusé - Droits administrateur requis', 'error');
-        showSection('accueil');
-        return;
-    }
-
-    fetchAPI('/api/admin/dashboard')
-        .then(stats => {
-            displayAdminDashboard(stats);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement du dashboard admin:', error);
-        });
-}
-
-// ====================================
-// UTILITAIRES
-// ====================================
-
-function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'block';
-    }
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.stelement.style.display = 'none';
-    }
-}
-
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
-}
-
-function checkAuthStatus() {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        fetchAPI('/api/auth/verify')
-            .then(data => {
-                if (data.valid) {
-                    isAuthenticated = true;
-                    currentUser = data.user;
-                    authManager.updateAuthButtons();
-                }
-            })
-            .catch(() => {
-                localStorage.removeItem('authToken');
-            });
-    }
-}
-
-async function fetchAPI(url, options = {}) {
-    const token = localStorage.getItem('authToken');
-    const defaultOptions = {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
-        }
-    };
-
-    const response = await fetch(url, { ...defaultOptions, ...options });
-
-    if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-    }
-
-    return response.json();
-}
-
-function generateYearOptions() {
-    const currentYear = new Date().getFullYear();
-    let options = '';
-    for (let year = currentYear; year >= currentYear - 10; year--) {
-        options += `<option value="${year}">${year}</option>`;
-    }
-    return options;
-}
-
-// Fonctions globales pour la compatibilité
-window.showSection = showSection;
-window.showModal = showModal;
-window.closeModal = closeModal;
-window.showNotification = showNotification;
-
-// Gestionnaire d'authentification
-class AuthManager {
-    constructor() {
-        this.token = localStorage.getItem('token');
-        this.currentUser = null;
-        this.initializeUser();
-    }
-
-    async initializeUser() {
-        if (this.token) {
-            try {
-                const response = await fetch('/api/auth/verify', {
-                    headers: {
-                        'Authorization': `Bearer ${this.token}`
-                    }
-                });
-
-                if (response.ok) {
-                    this.currentUser = await response.json();
-                    this.updateAuthButtons();
-                } else {
-                    this.logout();
-                }
-            } catch (error) {
-                console.error('Erreur de vérification du token:', error);
-                this.logout();
-            }
-        }
-    }
-
-    updateAuthButtons() {
-        const authButtons = document.querySelector('.auth-buttons');
-        const adminLinks = document.querySelectorAll('.admin-only');
-        const authRequiredLinks = document.querySelectorAll('.auth-required');
-
-        if (this.currentUser) {
-            authButtons.innerHTML = `
-                <span class="user-info">👋 ${this.currentUser.first_name || this.currentUser.email}</span>
-                <button class="btn btn-outline" onclick="authManager.logout()">Déconnexion</button>
-            `;
-
-            // Afficher les liens admin si l'utilisateur est admin
-            adminLinks.forEach(link => {
-                link.style.display = this.currentUser.user_type === 'admin' ? 'block' : 'none';
-            });
-
-            // Afficher les liens authentifiés
-            authRequiredLinks.forEach(link => {
-                link.style.display = 'block';
-            });
-        } else {
-            authButtons.innerHTML = `
-                <button class="btn btn-outline" onclick="showLogin()">Connexion</button>
-                <button class="btn btn-primary" onclick="showRegister()">S'inscrire</button>
-            `;
-
-            // Masquer les liens admin et authentifiés
-            adminLinks.forEach(link => link.style.display = 'none');
-            authRequiredLinks.forEach(link => link.style.display = 'none');
-        }
-    }
-
-    async login(email, password) {
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email, password })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                this.token = data.token;
-                this.currentUser = data.user;
-                localStorage.setItem('token', this.token);
-                this.updateAuthButtons();
-                hideModal();
-                showNotification('Connexion réussie !', 'success');
-                return true;
-            } else {
-                const error = await response.json();
-                showNotification(error.message, 'error');
-                return false;
-            }
-        } catch (error) {
-            console.error('Erreur de connexion:', error);
-            showNotification('Erreur de connexion', 'error');
-            return false;
-        }
-    }
-
-    async register(userData) {
-        try {
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(userData)
-            });
-
-            if (response.ok) {
-                showNotification('Inscription réussie ! Vous pouvez maintenant vous connecter.', 'success');
-                showLogin();
-                return true;
-            } else {
-                const error = await response.json();
-                showNotification(error.message, 'error');
-                return false;
-            }
-        } catch (error) {
-            console.error('Erreur d\'inscription:', error);
-            showNotification('Erreur d\'inscription', 'error');
-            return false;
-        }
-    }
-
-    logout() {
-        this.token = null;
-        this.currentUser = null;
-        localStorage.removeItem('token');
-        this.updateAuthButtons();
-        showNotification('Déconnexion réussie', 'success');
-        navigateToSection('accueil');
-    }
-
-    getToken() {
-        return this.token;
-    }
-
-    getCurrentUser() {
-        return this.currentUser;
-    }
-
-    isLoggedIn() {
-        return !!this.currentUser;
-    }
-
-    isAdmin() {
-        return this.currentUser && this.currentUser.user_type === 'admin';
-    }
-
-    init() {}
-}
-
-// Instance globale du gestionnaire d'authentification
-let authManager;
-
- et navigation
-
-// Variables globales pour les posts
-let samplePosts = [
-    {
-        id: 1,
-        title: "Aide sur les équations du second degré",
-        content: "Bonjour, je n'arrive pas à résoudre cette équation : x² - 5x + 6 = 0. Quelqu'un peut-il m'expliquer la méthode ?",
-        author: "Amina K.",
-        subject: "Mathématiques",
-        category: "Question",
-        level: "Lycée",
-        date: "Il y a 2h",
-        replies: 3,
-        likes: 5
-    },
-    {
-        id: 2,
-        title: "Exercice de français - analyse de texte",
-        content: "Voici un exercice d'analyse que j'ai préparé pour mes camarades de première. N'hésitez pas à proposer vos réponses !",
-        author: "Said M.",
-        subject: "Français",
-        category: "Exercice",
-        level: "Lycée",
-        date: "Il y a 4h",
-        replies: 7,
-        likes: 12
-    },
-    {
-        id: 3,
-        title: "Révisions BAC Sciences - Chimie organique",
-        content: "Quelqu'un aurait-il des fiches de révision sur la chimie organique ? Je prépare mon BAC et j'ai du mal avec les nomenclatures.",
-        author: "Fatima A.",
-        subject: "Sciences",
-        category: "Question",
-        level: "Lycée",
-        date: "Il y a 1 jour",
-        replies: 15,
-        likes: 8
-    }
-];
-
-const sampleMentors = [
-    {
-        id: 1,
-        name: "Dr. Ahmed Hassan",
-        subjects: "Mathématiques, Physique",
-        level: "Université",
-        rating: 4.9,
-        avatar: "AH",
-        experience: "5 ans d'expérience"
-    },
-    {
-        id: 2,
-        name: "Mme Aïcha Saïd",
-        subjects: "Français, Littérature",
-        level: "Lycée",
-        rating: 4.8,
-        avatar: "AS",
-        experience: "8 ans d'expérience"
-    },
-    {
-        id: 3,
-        name: "M. Ibrahim Ali",
-        subjects: "Histoire, Géographie",
-        level: "Collège/Lycée",
-        rating: 4.7,
-        avatar: "IA",
-        experience: "3 ans d'expérience"
-    },
-    {
-        id: 4,
-        name: "Dr. Maryam Omar",
-        subjects: "Biologie, Chimie",
-        level: "Université",
-        rating: 4.9,
-        avatar: "MO",
-        experience: "6 ans d'expérience"
-    }
-];
-
-const sampleAnnales = [
-    {
-        id: 1,
-        title: "Baccalauréat Mathématiques - Série C",
-        year: "2024",
-        exam: "Baccalauréat",
-        subject: "Mathématiques",
-        description: "Sujet complet avec corrigé détaillé",
-        pages: 8,
-        difficulty: "Difficile"
-    },
-    {
-        id: 2,
-        title: "Brevet Français - Épreuve écrite",
-        year: "2023",
-        exam: "Brevet",
-        subject: "Français",
-        description: "Analyse de texte et expression écrite",
-        pages: 6,
-        difficulty: "Moyen"
-    },
-    {
-        id: 3,
-        title: "BTS Physique-Chimie - Session principale",
-        year: "2023",
-        exam: "BTS",
-        subject: "Sciences",
-        description: "Épreuve pratique et théorique",
-        pages: 12,
-        difficulty: "Très difficile"
-    },
-    {
-        id: 4,
-        title: "Licence Histoire contemporaine - Partiel",
-        year: "2022",
-        exam: "Licence",
-        subject: "Histoire",
-        description: "Dissertation sur la période 1945-1975",
-        pages: 4,
-        difficulty: "Difficile"
-    }
-];
-
-const sampleMetiers = [
-    {
-        id: 1,
-        title: "Développeur Web",
-        category: "sciences",
-        icon: "💻",
-        description: "Création et maintenance de sites web et applications",
-        formation: "Bac+2 à Bac+5",
-        salaire: "35 000 - 60 000 € / an",
-        competences: ["HTML/CSS", "JavaScript", "Frameworks"],
-        secteurs: ["Tech", "E-commerce", "Médias"]
-    },
-    {
-        id: 2,
-        title: "Infirmier(e)",
-        category: "sante",
-        icon: "🏥",
-        description: "Soins et accompagnement des patients",
-        formation: "Bac+3 (IFSI)",
-        salaire: "28 000 - 45 000 € / an",
-        competences: ["Soins", "Empathie", "Rigueur"],
-        secteurs: ["Hôpital", "Clinique", "Libéral"]
-    },
-    {
-        id: 3,
-        title: "Professeur",
-        category: "education",
-        icon: "🎓",
-        description: "Enseignement et formation des élèves",
-        formation: "Bac+5 (Master MEEF)",
-        salaire: "30 000 - 55 000 € / an",
-        competences: ["Pédagogie", "Communication", "Discipline"],
-        secteurs: ["Éducation nationale", "Privé", "Formation"]
-    },
-    {
-        id: 4,
-        title: "Commercial",
-        category: "commerce",
-        icon: "💼",
-        description: "Vente et relation client",
-        formation: "Bac+2 à Bac+5",
-        salaire: "25 000 - 80 000 € / an",
-        competences: ["Négociation", "Relationnel", "Persuasion"],
-        secteurs: ["Tous secteurs", "B2B", "B2C"]
-    },
-    {
-        id: 5,
-        title: "Graphiste",
-        category: "art",
-        icon: "🎨",
-        description: "Création visuelle et design graphique",
-        formation: "Bac+2 à Bac+5",
-        salaire: "22 000 - 45 000 € / an",
-        competences: ["Créativité", "Logiciels PAO", "Tendances"],
-        secteurs: ["Communication", "Édition", "Web"]
-    },
-    {
-        id: 6,
-        title: "Ingénieur",
-        category: "sciences",
-        icon: "⚙️",
-        description: "Conception et développement de solutions techniques",
-        formation: "Bac+5 (École d'ingénieur)",
-        salaire: "40 000 - 80 000 € / an",
-        competences: ["Analyse", "Innovation", "Gestion projet"],
-        secteurs: ["Industrie", "IT", "Énergie"]
-    }
-];
-
-let currentMetierCategory = 'tous';
-
-// Données de démonstration pour les résultats
-const sampleResults = {
-    bac: [
-        {
-            id: 1,
-            name: "AHMED Said Ibrahim",
-            numero: "BAC2024001",
-            year: "2024",
-            region: "ngazidja",
-            serie: "C",
-            mention: "Très Bien",
-            status: "admitted",
-            moyenne: 16.75
-        },
-        {
-            id: 2,
-            name: "FATIMA Aïcha Mohamed",
-            numero: "BAC2024002",
-            year: "2024",
-            region: "ndzuani",
-            serie: "D",
-            mention: "Bien",
-            status: "admitted",
-            moyenne: 14.25
-        },
-        {
-            id: 3,
-            name: "IBRAHIM Ali Soilihi",
-            numero: "BAC2024003",
-            year: "2024",
-            region: "mwali",
-            serie: "L",
-            mention: "Assez Bien",
-            status: "admitted",
-            moyenne: 12.50
-        },
-        {
-            id: 4,
-            name: "MARIAMA Hassan Abdou",
-            numero: "BAC2024004",
-            year: "2024",
-            region: "ngazidja",
-            serie: "S",
-            mention: "-",
-            status: "failed",
-            moyenne: 8.75
-        }
-    ],
-    bepc: [
-        {
-            id: 1,
-            name: "MOHAMED Anli Said",
-            numero: "BEPC2024001",
-            year: "2024",
-            region: "ngazidja",
-            etablissement: "Collège de Moroni",
-            mention: "Bien",
-            status: "admitted",
-            moyenne: 13.80
-        },
-        {
-            id: 2,
-            name: "ZAINA Combo Moussa",
-            numero: "BEPC2024002",
-            year: "2024",
-            region: "ndzuani",
-            etablissement: "Collège de Mutsamudu",
-            mention: "Assez Bien",
-            status: "admitted",
-            moyenne: 11.60
-        },
-        {
-            id: 3,
-            name: "HAMADI Abdou Salim",
-            numero: "BEPC2024003",
-            year: "2024",
-            region: "mwali",
-            etablissement: "Collège de Fomboni",
-            mention: "-",
-            status: "failed",
-            moyenne: 9.25
-        }
-    ],
-    concours: [
-        {
-            id: 1,
-            name: "AMINA Saïd Omar",
-            numero: "CONC2024001",
-            year: "2024",
-            region: "ngazidja",
-            ecole_origine: "EPP Moroni Centre",
-            rang: 1,
-            status: "admitted",
-            note: 18.5
-        },
-        {
-            id: 2,
-            name: "YOUSSOUF Ali Hassan",
-            numero: "CONC2024002",
-            year: "2024",
-            region: "ndzuani",
-            ecole_origine: "EPP Mutsamudu",
-            rang: 15,
-            status: "admitted",
-            note: 16.25
-        },
-        {
-            id: 3,
-            name: "SALIMA Mohamed Abdou",
-            numero: "CONC2024003",
-            year: "2024",
-            region: "mwali",
-            ecole_origine: "EPP Fomboni",
-            rang: 156,
-            status: "failed",
-            note: 8.75
-        }
-    ]
-};
-
-// Données d'administration (à remplacer par une base de données)
-const adminUsers = [
-    {
-        id: 1,
-        firstName: "Admin",
-        lastName: "LEWO",
-        email: "admin@lewo.com",
-        type: "admin",
-        educationLevel: "universite",
-        status: "active",
-        joinDate: new Date(),
-        avatar: "AL"
-    },
-    {
-        id: 2,
-        firstName: "Utilisateur",
-        lastName: "Standard",
-        email: "user@lewo.com",
-        type: "student",
-        educationLevel: "lycee",
-        status: "active",
-        joinDate: new Date(),
-        avatar: "US"
-    }
-];
-
-const adminMentorships = [
-    {
-        id: 1,
-        mentor: "Dr. Ahmed Hassan",
-        student: "Amina K.",
-        subject: "Mathématiques",
-        status: "active",
-        startDate: new Date(),
-        progress: 75
-    },
-    {
-        id: 2,
-        mentor: "Mme Aïcha Saïd",
-        student: "Said M.",
-        subject: "Français",
-        status: "pending",
-        startDate: new Date(),
-        progress: 20
-    }
-];
-
-const adminReports = [
-    {
-        id: 1,
-        reporter: "Utilisateur Standard",
-        type: "spam",
-        content: "Ce post est un spam",
-        status: "pending",
-        date: new Date(),
-        urgent: true
-    },
-    {
-        id: 2,
-        reporter: "Amina K.",
-        type: "inappropriate",
-        content: "Ce contenu est inapproprié",
-        status: "resolved",
-        date: new Date(),
-        urgent: false
-    }
-];
-
-// Variables pour l'admin
-let currentAdminTab = 'dashboard';
-
-// Gestion d'erreur globale
-window.addEventListener('error', function(e) {
-    console.error('Erreur JavaScript:', e.error);
-    // Éviter que les erreurs bloquent l'application
-    return true;
-});
-
-// Recherche dans le forum
-function setupSearchHandler() {
-    const searchInput = document.querySelector('.search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            filterPosts(searchTerm);
-        });
-    }
-}
-
-// Appel après l'initialisation
-setTimeout(setupSearchHandler, 100);
-
 function showSectionOriginal(sectionName) {
-    // Vérifier si la section nécessite une authentification
-    if ((sectionName === 'annales' || sectionName === 'metiers' || sectionName === 'resultats') && !authManager.currentUser) {
+    // Vérifier l'authentification pour certaines sections
+    if ((sectionName === 'annales' || sectionName === 'metiers' || sectionName === 'resultats') && !authManager.isLoggedIn()) {
         showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
         showLogin();
         return;
     }
 
-    // Cacher toutes les sections
+    // Masquer toutes les sections
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
     });
@@ -980,7 +585,7 @@ function showRegister() {
 }
 
 function showNewPost() {
-    if (!authManager.currentUser) {
+    if (!authManager.getCurrentUser()) {
         showLogin();
         return;
     }
@@ -1081,8 +686,6 @@ function setupFormHandlers() {
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            ```text
-e.preventDefault();
             handleRegister();
         });    }
 
@@ -1113,7 +716,9 @@ e.preventDefault();
     }
 }
 
-function handleLogin() {
+async function handleLogin(e) {
+    e.preventDefault();
+
     // Simulation de connexion
     const email = document.querySelector('#loginModal input[type="email"]').value;
 
@@ -1140,7 +745,9 @@ function handleLogin() {
     showNotification('Connexion réussie !', 'success');
 }
 
-function handleRegister() {
+async function handleRegister(e) {
+    e.preventDefault();
+
     // Simulation d'inscription
     const firstname = document.querySelector('#registerModal input[placeholder="Prénom"]').value;
     const lastname = document.querySelector('#registerModal input[placeholder="Nom"]').value;
@@ -1339,7 +946,7 @@ function logout() {
 }
 
 function contactMentor(mentorId) {
-    if (!authManager.currentUser) {
+    if (!authManager.getCurrentUser()) {
         showLogin();
         return;
     }
@@ -1351,7 +958,7 @@ function contactMentor(mentorId) {
 // Fonctions de gestion du profil
 function updateProfileSection() {
     const profileContent = document.getElementById('profileContent');
-    if (!authManager.currentUser) {
+    if (!authManager.getCurrentUser()) {
         if (profileContent) {
             profileContent.innerHTML = '<p class="text-center">Connectez-vous pour voir votre profil</p>';
         }
@@ -1459,7 +1066,7 @@ function updateProfileSection() {
 }
 
 function showEditProfile() {
-    if (!authManager.currentUser) {
+    if (!authManager.getCurrentUser()) {
         showLogin();
         return;
     }
@@ -1901,7 +1508,15 @@ async function loadAdminMentorships() {
 
 async function loadAdminReports() {
     // Cette fonction sera gérée par la page admin elle-même
-}inUsers.length;
+}
+
+function loadAdminDashboardOriginal() {
+    const totalUsersEl = document.getElementById('totalUsers');
+    const totalPostsEl = document.getElementById('totalPosts');
+    const activeMentorshipsEl = document.getElementById('activeMentorships');
+    const pendingReportsEl = document.getElementById('pendingReports');
+
+    if (totalUsersEl) totalUsersEl.textContent = adminUsers.length;
     if (totalPostsEl) totalPostsEl.textContent = samplePosts.length;
     if (activeMentorshipsEl) activeMentorshipsEl.textContent = adminMentorships.filter(m => m.status === 'active').length;
     if (pendingReportsEl) pendingReportsEl.textContent = adminReports.filter(r => r.status === 'pending').length;
@@ -1970,7 +1585,7 @@ async function loadAdminReports() {
     }
 }
 
-function loadAdminUsers() {
+function loadAdminUsersOriginal() {
     const tableBody = document.getElementById('usersTableBody');
     if (tableBody) {
         tableBody.innerHTML = adminUsers.map(user => `
@@ -2000,7 +1615,7 @@ function loadAdminUsers() {
     }
 }
 
-function loadAdminPosts() {
+function loadAdminPostsOriginal() {
     const postsGrid = document.getElementById('adminPostsGrid');
     if (postsGrid) {
         postsGrid.innerHTML = samplePosts.map(post => `
@@ -2031,7 +1646,7 @@ function loadAdminPosts() {
     }
 }
 
-function loadAdminMentorships() {
+function loadAdminMentorshipsOriginal() {
     const tableBody = document.getElementById('mentorshipsTableBody');
     if (tableBody) {
         tableBody.innerHTML = adminMentorships.map(mentorship => `
@@ -2064,7 +1679,7 @@ function loadAdminMentorships() {
     }
 }
 
-function loadAdminReports() {
+function loadAdminReportsOriginal() {
     const reportsList = document.getElementById('reportsList');
     if (reportsList) {
         reportsList.innerHTML = adminReports.map(report => `
