@@ -1,4 +1,3 @@
-
 // Utilitaires globaux
 let currentSection = 'accueil';
 
@@ -56,22 +55,9 @@ function showNewPost() {
     document.getElementById('newPostModal').style.display = 'block';
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
-}
-
-function switchToRegister() {
-    closeModal('loginModal');
-    showRegister();
-}
-
-function switchToLogin() {
-    closeModal('registerModal');
-    showLogin();
-}
-
-// Notifications
+// Module utilitaires
 function showNotification(message, type = 'info') {
+    // Créer une notification toast
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.style.cssText = `
@@ -92,11 +78,13 @@ function showNotification(message, type = 'info') {
 
     document.body.appendChild(notification);
 
+    // Animation d'entrée
     setTimeout(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateX(0)';
     }, 100);
 
+    // Suppression automatique
     setTimeout(() => {
         notification.style.opacity = '0';
         notification.style.transform = 'translateX(100%)';
@@ -106,6 +94,54 @@ function showNotification(message, type = 'info') {
             }
         }, 300);
     }, 3000);
+}
+
+function getUserTypeLabel(type) {
+    switch(type) {
+        case 'student': return 'Élève/Étudiant';
+        case 'mentor': return 'Mentor';
+        case 'admin': return 'Administrateur';
+        default: return 'Utilisateur';
+    }
+}
+
+function getEducationLevelLabel(level) {
+    switch(level) {
+        case 'college': return 'Collège';
+        case 'lycee': return 'Lycée';
+        case 'universite': return 'Université';
+        case 'professionnel': return 'Professionnel';
+        default: return 'Non spécifié';
+    }
+}
+
+function getSubjectLabel(subject) {
+    switch(subject) {
+        case 'maths': return 'Mathématiques';
+        case 'francais': return 'Français';
+        case 'sciences': return 'Sciences';
+        case 'histoire': return 'Histoire-Géo';
+        case 'anglais': return 'Anglais';
+        case 'informatique': return 'Informatique';
+        default: return subject;
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function switchToRegister() {
+    closeModal('loginModal');
+    showRegister();
+}
+
+function switchToLogin() {
+    closeModal('registerModal');
+    showLogin();
 }
 
 // Fonctions globales pour les événements

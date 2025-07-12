@@ -1,12 +1,33 @@
 
 // Module d'authentification
-class AuthManager {
-    constructor() {
-        this.currentUser = null;
-    }
+const authManager = {
+    currentUser: null,
+
+    init() {
+        this.setupFormHandlers();
+    },
+
+    setupFormHandlers() {
+        // Formulaire de connexion
+        const loginForm = document.querySelector('#loginModal .auth-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+        }
+
+        // Formulaire d'inscription
+        const registerForm = document.querySelector('#registerModal .auth-form');
+        if (registerForm) {
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleRegister();
+            });
+        }
+    },
 
     handleLogin() {
-        // Simulation de connexion
         const email = document.querySelector('#loginModal input[type="email"]').value;
 
         this.currentUser = {
@@ -30,10 +51,9 @@ class AuthManager {
         closeModal('loginModal');
         this.updateAuthButtons();
         showNotification('Connexion réussie !', 'success');
-    }
+    },
 
     handleRegister() {
-        // Simulation d'inscription
         const firstname = document.querySelector('#registerModal input[placeholder="Prénom"]').value;
         const lastname = document.querySelector('#registerModal input[placeholder="Nom"]').value;
         const email = document.querySelector('#registerModal input[type="email"]').value;
@@ -49,7 +69,7 @@ class AuthManager {
             educationLevel: educationLevel,
             institution: "",
             location: "",
-            bio: "Bienvenue sur LEWO ! N'hésitez pas à compléter votre profil pour mieux vous faire connaître de la communauté.",
+            bio: "Bienvenue sur LEWO ! N'hésitez pas à compléter votre profil.",
             interests: [],
             photo: null,
             postsCount: 0,
@@ -61,7 +81,7 @@ class AuthManager {
         closeModal('registerModal');
         this.updateAuthButtons();
         showNotification('Inscription réussie ! Bienvenue sur LEWO !', 'success');
-    }
+    },
 
     updateAuthButtons() {
         const authButtons = document.querySelector('.auth-buttons');
@@ -82,13 +102,8 @@ class AuthManager {
                     link.classList.add('visible');
                 });
             }
-
-            // Mettre à jour le profil
-            if (window.profileManager) {
-                window.profileManager.updateProfileSection();
-            }
         }
-    }
+    },
 
     logout() {
         this.currentUser = null;
@@ -103,18 +118,25 @@ class AuthManager {
             link.classList.remove('available');
         });
 
-        // Rediriger vers l'accueil si on était sur une section authentifiée
-        if (window.currentSection === 'annales' || window.currentSection === 'metiers') {
-            showSection('accueil');
-        }
-
         showNotification('Déconnexion réussie', 'info');
     }
+};
 
-    getCurrentUser() {
-        return this.currentUser;
-    }
+// Fonctions globales pour la compatibilité
+function showLogin() {
+    document.getElementById('loginModal').style.display = 'block';
 }
 
-// Instance globale
-const authManager = new AuthManager();
+function showRegister() {
+    document.getElementById('registerModal').style.display = 'block';
+}
+
+function switchToRegister() {
+    closeModal('loginModal');
+    showRegister();
+}
+
+function switchToLogin() {
+    closeModal('registerModal');
+    showLogin();
+}

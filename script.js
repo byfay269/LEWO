@@ -1,11 +1,17 @@
-// Variables globales
-let currentUser = null;
-let currentSection = 'accueil';
+// Fichier principal - Variables globales et navigation
+let appCurrentSection = 'accueil';
 let currentExamType = 'bac';
 
 // Navigation entre pages
 function navigateToSection(section) {
     const pageContent = document.getElementById('pageContent');
+
+    // Vérifier si la section nécessite une authentification
+    if ((section === 'annales' || section === 'metiers' || section === 'resultats') && !authManager.currentUser) {
+        showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
+        showLogin();
+        return;
+    }
 
     // Mettre à jour la navigation
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -19,7 +25,7 @@ function navigateToSection(section) {
 
     // Charger le contenu de la page
     loadPageContent(section);
-    currentSection = section;
+    appCurrentSection = section;
 }
 
 async function loadPageContent(section) {
@@ -29,15 +35,12 @@ async function loadPageContent(section) {
         const response = await fetch(`pages/${section}.html`);
         if (response.ok) {
             const html = await response.text();
-            // Extraire le contenu entre les balises body
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const content = doc.querySelector('.page-content');
 
             if (content) {
                 pageContent.innerHTML = content.innerHTML;
-
-                // Initialiser le contenu selon la section
                 initializePageContent(section);
             }
         } else {
@@ -51,42 +54,63 @@ async function loadPageContent(section) {
 function initializePageContent(section) {
     switch(section) {
         case 'forum':
-            if (typeof forumManager !== 'undefined') {
-                forumManager.loadPosts();
-            }
+            forumManager.loadPosts();
             break;
         case 'mentors':
-            if (typeof mentorsManager !== 'undefined') {
-                mentorsManager.loadMentors();
-            }
+            mentorsManager.loadMentors();
             break;
         case 'annales':
-            if (typeof contentManager !== 'undefined') {
-                contentManager.loadAnnales();
-            }
-            break;
-        case 'resultats':
-            if (typeof contentManager !== 'undefined') {
-                contentManager.showExamResults('bac');
-            }
+            contentManager.loadAnnales();
             break;
         case 'metiers':
-            if (typeof contentManager !== 'undefined') {
-                contentManager.showMetierCategory('tous');
-            }
-            break;
-        case 'admin':
-            if (typeof adminManager !== 'undefined') {
-                adminManager.loadDashboard();
-            }
+            contentManager.loadMetiers();
             break;
         case 'profil':
-            if (typeof profileManager !== 'undefined') {
-                profileManager.loadProfile();
-            }
+            profileManager.loadProfile();
+            break;
+        case 'admin':
+            adminManager.loadDashboard();
             break;
     }
 }
+
+// Initialisation de l'application
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Initialiser tous les modules
+        authManager.init();
+        forumManager.init();
+        mentorsManager.init();
+        contentManager.init();
+        profileManager.init();
+        adminManager.init();
+
+        // Gestion de la navigation
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetSection = this.getAttribute('href').substring(1);
+                navigateToSection(targetSection);
+            });
+        });
+
+        // Fermeture des modales en cliquant à l'extérieur
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+
+        // Mettre à jour les boutons d'authentification
+        authManager.updateAuthButtons();
+
+        console.log('Application LEWO initialisée avec succès');
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+        showNotification('Erreur lors du chargement de l\'application', 'error');
+    }
+});
 
 // Données de démonstration
 const samplePosts = [
@@ -298,7 +322,7 @@ const sampleResults = {
         {
             id: 2,
             name: "FATIMA Aïcha Mohamed",
-            numero: "BAC2024002", 
+            numero: "BAC2024002",
             year: "2024",
             region: "ndzuani",
             serie: "D",
@@ -310,7 +334,7 @@ const sampleResults = {
             id: 3,
             name: "IBRAHIM Ali Soilihi",
             numero: "BAC2024003",
-            year: "2024", 
+            year: "2024",
             region: "mwali",
             serie: "L",
             mention: "Assez Bien",
@@ -379,7 +403,7 @@ const sampleResults = {
         {
             id: 2,
             name: "YOUSSOUF Ali Hassan",
-            numero: "CONC2024002", 
+            numero: "CONC2024002",
             year: "2024",
             region: "ndzuani",
             ecole_origine: "EPP Mutsamudu",
@@ -479,30 +503,13 @@ window.addEventListener('error', function(e) {
     return true;
 });
 
-// Fichier principal - Initialisation et coordination des modules
-
-// Initialisation de l'application
-document.addEventListener('DOMContentLoaded', function() {
-    try {
-        initializeApp();
-        forumManager.loadForumPosts();
-        mentorsManager.loadMentors();
-        contentManager.loadAnnales();
-        contentManager.loadMetiers();
-        contentManager.loadResultats();
-    } catch (error) {
-        console.error('Erreur lors de l\'initialisation:', error);
-        showNotification('Erreur lors du chargement de l\'application', 'error');
-    }
-});
-
 // Recherche dans le forum
 function setupSearchHandler() {
     const searchInput = document.querySelector('.search-input');
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
-            forumManager.filterPosts(searchTerm);
+            filterPosts(searchTerm);
         });
     }
 }
@@ -510,34 +517,9 @@ function setupSearchHandler() {
 // Appel après l'initialisation
 setTimeout(setupSearchHandler, 100);
 
-function initializeApp() {
-    // Gestion de la navigation
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetSection = this.getAttribute('href').substring(1);
-            showSection(targetSection);
-        });
-    });
-
-    // Fermeture des modales en cliquant à l'extérieur
-    window.addEventListener('click', function(e) {
-        if (e.target.classList.contains('modal')) {
-            e.target.style.display = 'none';
-        }
-    });
-
-    // Gestion des formulaires
-    setupFormHandlers();
-
-    // Initialiser les résultats
-
-}
-
 function showSection(sectionName) {
     // Vérifier si la section nécessite une authentification
-    if ((sectionName === 'annales' || sectionName === 'metiers' || sectionName === 'resultats') && !currentUser) {
+    if ((sectionName === 'annales' || sectionName === 'metiers' || sectionName === 'resultats') && !authManager.currentUser) {
         showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
         showLogin();
         return;
@@ -562,7 +544,7 @@ function showSection(sectionName) {
         }
     });
 
-    currentSection = sectionName;
+    appCurrentSection = sectionName;
 }
 
 function scrollToSection(sectionName) {
@@ -579,7 +561,7 @@ function showRegister() {
 }
 
 function showNewPost() {
-    if (!currentUser) {
+    if (!authManager.currentUser) {
         showLogin();
         return;
     }
@@ -715,7 +697,7 @@ function handleLogin() {
     // Simulation de connexion
     const email = document.querySelector('#loginModal input[type="email"]').value;
 
-    currentUser = {
+    authManager.currentUser = {
         email: email,
         firstName: "Utilisateur",
         lastName: "Test",
@@ -734,7 +716,7 @@ function handleLogin() {
     };
 
     closeModal('loginModal');
-    updateAuthButtons();
+    authManager.updateAuthButtons();
     showNotification('Connexion réussie !', 'success');
 }
 
@@ -746,7 +728,7 @@ function handleRegister() {
     const userType = document.querySelector('#registerModal select').value;
     const educationLevel = document.querySelectorAll('#registerModal select')[1].value;
 
-    currentUser = {
+    authManager.currentUser = {
         email: email,
         firstName: firstname,
         lastName: lastname,
@@ -765,7 +747,7 @@ function handleRegister() {
     };
 
     closeModal('registerModal');
-    updateAuthButtons();
+    authManager.updateAuthButtons();
     showNotification('Inscription réussie ! Bienvenue sur LEWO !', 'success');
 }
 
@@ -778,7 +760,7 @@ function handleNewPost() {
         id: samplePosts.length + 1,
         title: title,
         content: content,
-        author: currentUser.name,
+        author: authManager.currentUser.name,
         subject: "Général",
         category: "Question",
         level: "Lycée",
@@ -795,9 +777,9 @@ function handleNewPost() {
 
 function updateAuthButtons() {
     const authButtons = document.querySelector('.auth-buttons');
-    if (currentUser) {
+    if (authManager.currentUser) {
         authButtons.innerHTML = `
-            <span style="color: rgba(255,255,255,0.9);">Bonjour, ${currentUser.name}</span>
+            <span style="color: rgba(255,255,255,0.9);">Bonjour, ${authManager.currentUser.name}</span>
             <button class="btn btn-outline" onclick="logout()">Déconnexion</button>
         `;
 
@@ -807,7 +789,7 @@ function updateAuthButtons() {
         });
 
         // Afficher la section admin si l'utilisateur est admin
-        if (currentUser.type === 'admin') {
+        if (authManager.currentUser.type === 'admin') {
             document.querySelectorAll('.admin-only').forEach(link => {
                 link.classList.add('visible');
             });
@@ -856,8 +838,8 @@ function createAnnaleHTML(annale) {
 function loadMetiers() {
     const metiersGrid = document.getElementById('metiersGrid');
     if (metiersGrid) {
-        const filteredMetiers = currentMetierCategory === 'tous' 
-            ? sampleMetiers 
+        const filteredMetiers = currentMetierCategory === 'tous'
+            ? sampleMetiers
             : sampleMetiers.filter(metier => metier.category === currentMetierCategory);
 
         metiersGrid.innerHTML = filteredMetiers.map(metier => createMetierHTML(metier)).join('');
@@ -916,7 +898,7 @@ function openMetierDetails(metierId) {
 }
 
 function logout() {
-    currentUser = null;
+    authManager.currentUser = null;
     const authButtons = document.querySelector('.auth-buttons');
     authButtons.innerHTML = `
         <button class="btn btn-outline" onclick="showLogin()">Connexion</button>
@@ -929,7 +911,7 @@ function logout() {
     });
 
     // Rediriger vers l'accueil si on était sur une section authentifiée
-    if (currentSection === 'annales' || currentSection === 'metiers') {
+    if (appCurrentSection === 'annales' || appCurrentSection === 'metiers') {
         showSection('accueil');
     }
 
@@ -937,7 +919,7 @@ function logout() {
 }
 
 function contactMentor(mentorId) {
-    if (!currentUser) {
+    if (!authManager.currentUser) {
         showLogin();
         return;
     }
@@ -989,14 +971,14 @@ function showNotification(message, type = 'info') {
 // Fonctions de gestion du profil
 function updateProfileSection() {
     const profileContent = document.getElementById('profileContent');
-    if (!currentUser) {
+    if (!authManager.currentUser) {
         if (profileContent) {
             profileContent.innerHTML = '<p class="text-center">Connectez-vous pour voir votre profil</p>';
         }
         return;
     }
 
-    const user = currentUser;
+    const user = authManager.currentUser;
     if (profileContent) {
         profileContent.innerHTML = `
             <div class="profile-container">
@@ -1097,7 +1079,7 @@ function updateProfileSection() {
 }
 
 function showEditProfile() {
-    if (!currentUser) {
+    if (!authManager.currentUser) {
         showLogin();
         return;
     }
@@ -1112,25 +1094,25 @@ function showEditProfile() {
     const editLocation = document.getElementById('editLocation');
     const editBio = document.getElementById('editBio');
 
-    if (editFirstName) editFirstName.value = currentUser.firstName || '';
-    if (editLastName) editLastName.value = currentUser.lastName || '';
-    if (editEmail) editEmail.value = currentUser.email || '';
-    if (editUserType) editUserType.value = currentUser.type || '';
-    if (editEducationLevel) editEducationLevel.value = currentUser.educationLevel || '';
-    if (editInstitution) editInstitution.value = currentUser.institution || '';
-    if (editLocation) editLocation.value = currentUser.location || '';
-    if (editBio) editBio.value = currentUser.bio || '';
+    if (editFirstName) editFirstName.value = authManager.currentUser.firstName || '';
+    if (editLastName) editLastName.value = authManager.currentUser.lastName || '';
+    if (editEmail) editEmail.value = authManager.currentUser.email || '';
+    if (editUserType) editUserType.value = authManager.currentUser.type || '';
+    if (editEducationLevel) editEducationLevel.value = authManager.currentUser.educationLevel || '';
+    if (editInstitution) editInstitution.value = authManager.currentUser.institution || '';
+    if (editLocation) editLocation.value = authManager.currentUser.location || '';
+    if (editBio) editBio.value = authManager.currentUser.bio || '';
 
     // Cocher les centres d'intérêt existants
     const interestCheckboxes = document.querySelectorAll('input[name="interests"]');
     interestCheckboxes.forEach(checkbox => {
-        checkbox.checked = currentUser.interests && currentUser.interests.includes(checkbox.value);
+        checkbox.checked = authManager.currentUser.interests && authManager.currentUser.interests.includes(checkbox.value);
     });
 
     // Afficher la photo actuelle
     const currentPhoto = document.getElementById('currentPhoto');
-    if (currentPhoto && currentUser.photo) {
-        currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${currentUser.photo}" alt="Photo actuelle">`;
+    if (currentPhoto && authManager.currentUser.photo) {
+        currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${authManager.currentUser.photo}" alt="Photo actuelle">`;
     }
 
     document.getElementById('editProfileModal').style.display = 'block';
@@ -1151,8 +1133,8 @@ function handleProfileUpdate() {
         .map(checkbox => checkbox.value);
 
     // Mettre à jour l'utilisateur actuel
-    currentUser = {
-        ...currentUser,
+    authManager.currentUser = {
+        ...authManager.currentUser,
         firstName,
         lastName,
         name: `${firstName} ${lastName}`,
@@ -1189,8 +1171,8 @@ function handlePhotoChange(event) {
             }
 
             // Sauvegarder dans l'utilisateur actuel
-            if (currentUser) {
-                currentUser.photo = photoUrl;
+            if (authManager.currentUser) {
+                authManager.currentUser.photo = photoUrl;
             }
         };
         reader.readAsDataURL(file);
@@ -1203,8 +1185,8 @@ function removePhoto() {
         currentPhoto.querySelector('.profile-avatar-large').innerHTML = '👤';
     }
 
-    if (currentUser) {
-        currentUser.photo = null;
+    if (authManager.currentUser) {
+        authManager.currentUser.photo = null;
     }
 
     const photoInput = document.getElementById('photoInput');
@@ -1246,7 +1228,7 @@ function getSubjectLabel(subject) {
 }
 
 function filterPosts(searchTerm) {
-    const filteredPosts = samplePosts.filter(post => 
+    const filteredPosts = samplePosts.filter(post =>
         post.title.toLowerCase().includes(searchTerm) ||
         post.content.toLowerCase().includes(searchTerm) ||
         post.subject.toLowerCase().includes(searchTerm)
@@ -1414,7 +1396,7 @@ function searchResults() {
 
     // Filtrer par terme de recherche
     if (searchTerm) {
-        filteredResults = filteredResults.filter(result => 
+        filteredResults = filteredResults.filter(result =>
             result.name.toLowerCase().includes(searchTerm) ||
             result.numero.toLowerCase().includes(searchTerm)
         );
@@ -1818,12 +1800,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initialisation
-    updateAuthButtons();
+    authManager.updateAuthButtons();
 
     // Charger les managers
-    if (typeof forumManager !== 'undefined') forumManager.init();
-    if (typeof mentorsManager !== 'undefined') mentorsManager.init();
-    if (typeof contentManager !== 'undefined') contentManager.init();
-    if (typeof adminManager !== 'undefined') adminManager.init();
-    if (typeof profileManager !== 'undefined') profileManager.init();
+    forumManager.init();
+    mentorsManager.init();
+    contentManager.init();
+    adminManager.init();
+    profileManager.init();
 });
