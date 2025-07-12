@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum - LEWO</title>
+    <link href="../style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div class="page-content">
+        <div class="container">
+            <div class="section-header">
+                <h2>Forum Collaboratif</h2>
+                <p>Aide tes pairs – poste un exercice ou rejoins la conversation !</p>
+            </div>
+
+            <div class="forum-controls">
+                <div class="search-filters">
+                    <input type="text" placeholder="Rechercher dans le forum..." class="search-input">
+                    <select class="filter-select">
+                        <option>Toutes les matières</option>
+                        <option>Mathématiques</option>
+                        <option>Français</option>
+                        <option>Sciences</option>
+                        <option>Histoire-Géo</option>
+                    </select>
+                    <select class="filter-select">
+                        <option>Tous les niveaux</option>
+                        <option>Collège</option>
+                        <option>Lycée</option>
+                        <option>Université</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="showNewPost()">
+                    ➕ Nouveau post
+                </button>
+            </div>
+
+            <div class="forum-posts" id="forumPosts">
+                <!-- Les posts seront générés dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/forum.js"></script>
+</body>
+</html>

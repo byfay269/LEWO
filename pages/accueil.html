@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil - LEWO</title>
+    <link href="../style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div class="page-content">
+        <div class="hero">
+            <div class="container">
+                <h2>Bienvenue sur LEWO</h2>
+                <p class="hero-subtitle">La plateforme de mentorat pour les élèves et étudiants comoriens</p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary btn-large" onclick="showRegister()">
+                        Rejoindre la communauté
+                    </button>
+                    <button class="btn btn-outline btn-large" onclick="navigateToSection('forum')">
+                        Explorer le forum
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="container">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">👥</div>
+                        <h3>Matching Automatique</h3>
+                        <p>Trouvez le mentor parfait selon votre niveau et vos matières</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💬</div>
+                        <h3>Forum Collaboratif</h3>
+                        <p>Posez vos questions, partagez vos exercices et aidez vos pairs</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3>Suivi des Progrès</h3>
+                        <p>Suivez votre évolution et celle de vos mentorés</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/auth.js"></script>
+</body>
+</html>

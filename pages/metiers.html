@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Métiers - LEWO</title>
+    <link href="../style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div class="page-content">
+        <div class="container">
+            <div class="section-header">
+                <h2>🎯 Découverte des Métiers</h2>
+                <p>Explorez les carrières et trouvez votre voie professionnelle</p>
+            </div>
+
+            <div class="metiers-categories">
+                <div class="category-tabs">
+                    <button class="tab-btn active" onclick="showMetierCategory('tous', this)">Tous les métiers</button>
+                    <button class="tab-btn" onclick="showMetierCategory('sciences', this)">Sciences & Tech</button>
+                    <button class="tab-btn" onclick="showMetierCategory('sante', this)">Santé</button>
+                    <button class="tab-btn" onclick="showMetierCategory('education', this)">Éducation</button>
+                    <button class="tab-btn" onclick="showMetierCategory('commerce', this)">Commerce</button>
+                    <button class="tab-btn" onclick="showMetierCategory('art', this)">Arts & Culture</button>
+                </div>
+            </div>
+
+            <div class="metiers-grid" id="metiersGrid">
+                <!-- Les métiers seront générés dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/content.js"></script>
+</body>
+</html>

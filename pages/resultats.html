@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résultats - LEWO</title>
+    <link href="../style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div class="page-content">
+        <div class="container">
+            <div class="section-header">
+                <h2>📊 Résultats d'Examens</h2>
+                <p>Consultez les résultats du BAC, BEPC et concours d'entrée en 6ème</p>
+            </div>
+
+            <div class="resultats-tabs">
+                <div class="exam-tabs">
+                    <button class="exam-tab-btn active" onclick="showExamResults('bac', this)">🎓 BAC</button>
+                    <button class="exam-tab-btn" onclick="showExamResults('bepc', this)">📚 BEPC</button>
+                    <button class="exam-tab-btn" onclick="showExamResults('concours', this)">🏆 Concours 6ème</button>
+                </div>
+            </div>
+
+            <div class="resultats-filters">
+                <div class="filter-group">
+                    <select class="filter-select" id="yearFilter">
+                        <option value="">Toutes les années</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                    </select>
+                    <select class="filter-select" id="regionFilter">
+                        <option value="">Toutes les régions</option>
+                        <option value="ngazidja">Ngazidja (Grande Comore)</option>
+                        <option value="ndzuani">Ndzuani (Anjouan)</option>
+                        <option value="mwali">Mwali (Mohéli)</option>
+                    </select>
+                    <input type="text" placeholder="Rechercher par nom ou numéro..." class="search-input" id="studentSearch">
+                </div>
+                <button class="btn btn-primary" onclick="searchResults()">
+                    🔍 Rechercher
+                </button>
+            </div>
+
+            <div class="resultats-stats">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCandidates">0</div>
+                        <div class="stat-label">Candidats</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-number" id="admittedCandidates">0</div>
+                        <div class="stat-label">Admis</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="successRate">0%</div>
+                        <div class="stat-label">Taux de réussite</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="resultats-content" id="resultatsContent">
+                <!-- Les résultats seront générés dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/content.js"></script>
+</body>
+</html>

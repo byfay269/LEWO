@@ -1,6 +1,92 @@
 // Variables globales
 let currentUser = null;
 let currentSection = 'accueil';
+let currentExamType = 'bac';
+
+// Navigation entre pages
+function navigateToSection(section) {
+    const pageContent = document.getElementById('pageContent');
+
+    // Mettre à jour la navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    const activeLink = document.querySelector(`[href="#${section}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
+
+    // Charger le contenu de la page
+    loadPageContent(section);
+    currentSection = section;
+}
+
+async function loadPageContent(section) {
+    const pageContent = document.getElementById('pageContent');
+
+    try {
+        const response = await fetch(`pages/${section}.html`);
+        if (response.ok) {
+            const html = await response.text();
+            // Extraire le contenu entre les balises body
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const content = doc.querySelector('.page-content');
+
+            if (content) {
+                pageContent.innerHTML = content.innerHTML;
+
+                // Initialiser le contenu selon la section
+                initializePageContent(section);
+            }
+        } else {
+            console.error(`Erreur lors du chargement de la page ${section}`);
+        }
+    } catch (error) {
+        console.error('Erreur de chargement:', error);
+    }
+}
+
+function initializePageContent(section) {
+    switch(section) {
+        case 'forum':
+            if (typeof forumManager !== 'undefined') {
+                forumManager.loadPosts();
+            }
+            break;
+        case 'mentors':
+            if (typeof mentorsManager !== 'undefined') {
+                mentorsManager.loadMentors();
+            }
+            break;
+        case 'annales':
+            if (typeof contentManager !== 'undefined') {
+                contentManager.loadAnnales();
+            }
+            break;
+        case 'resultats':
+            if (typeof contentManager !== 'undefined') {
+                contentManager.showExamResults('bac');
+            }
+            break;
+        case 'metiers':
+            if (typeof contentManager !== 'undefined') {
+                contentManager.showMetierCategory('tous');
+            }
+            break;
+        case 'admin':
+            if (typeof adminManager !== 'undefined') {
+                adminManager.loadDashboard();
+            }
+            break;
+        case 'profil':
+            if (typeof profileManager !== 'undefined') {
+                profileManager.loadProfile();
+            }
+            break;
+    }
+}
 
 // Données de démonstration
 const samplePosts = [
@@ -194,7 +280,6 @@ const sampleMetiers = [
 ];
 
 let currentMetierCategory = 'tous';
-let currentExamType = 'bac';
 
 // Données de démonstration pour les résultats
 const sampleResults = {
@@ -447,7 +532,7 @@ function initializeApp() {
     setupFormHandlers();
 
     // Initialiser les résultats
-    
+
 }
 
 function showSection(sectionName) {
@@ -800,7 +885,7 @@ function showMetierCategory(category, buttonElement = null) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     if (buttonElement) {
         buttonElement.classList.add('active');
     } else {
@@ -1185,7 +1270,7 @@ function showExamResults(examType, buttonElement = null) {
     document.querySelectorAll('.exam-tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     if (buttonElement) {
         buttonElement.classList.add('active');
     } else {
@@ -1370,7 +1455,7 @@ function showAdminTab(tabName, buttonElement = null) {
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.classList.remove('active');
     });
-    
+
     if (buttonElement) {
         buttonElement.classList.add('active');
     } else {
@@ -1720,3 +1805,25 @@ function manageResultats() {
 function manageSubjects() {
     showNotification('Gestion des matières - Fonctionnalité en développement', 'info');
 }
+
+// Gestionnaires d'événements
+document.addEventListener('DOMContentLoaded', function() {
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.getAttribute('href').substring(1);
+            navigateToSection(section);
+        });
+    });
+
+    // Initialisation
+    updateAuthButtons();
+
+    // Charger les managers
+    if (typeof forumManager !== 'undefined') forumManager.init();
+    if (typeof mentorsManager !== 'undefined') mentorsManager.init();
+    if (typeof contentManager !== 'undefined') contentManager.init();
+    if (typeof adminManager !== 'undefined') adminManager.init();
+    if (typeof profileManager !== 'undefined') profileManager.init();
+});
