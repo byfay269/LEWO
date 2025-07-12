@@ -1,4 +1,3 @@
-
 // Variables globales
 let currentUser = null;
 let currentSection = 'accueil';
@@ -395,19 +394,36 @@ window.addEventListener('error', function(e) {
     return true;
 });
 
+// Fichier principal - Initialisation et coordination des modules
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
     try {
         initializeApp();
-        loadForumPosts();
-        loadMentors();
-        loadAnnales();
-        loadMetiers();
+        forumManager.loadForumPosts();
+        mentorsManager.loadMentors();
+        contentManager.loadAnnales();
+        contentManager.loadMetiers();
+        contentManager.loadResultats();
     } catch (error) {
         console.error('Erreur lors de l\'initialisation:', error);
         showNotification('Erreur lors du chargement de l\'application', 'error');
     }
 });
+
+// Recherche dans le forum
+function setupSearchHandler() {
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            forumManager.filterPosts(searchTerm);
+        });
+    }
+}
+
+// Appel après l'initialisation
+setTimeout(setupSearchHandler, 100);
 
 function initializeApp() {
     // Gestion de la navigation
@@ -431,7 +447,7 @@ function initializeApp() {
     setupFormHandlers();
 
     // Initialiser les résultats
-    loadResultats();
+    
 }
 
 function showSection(sectionName) {
@@ -1141,17 +1157,6 @@ function getSubjectLabel(subject) {
         case 'anglais': return 'Anglais';
         case 'informatique': return 'Informatique';
         default: return subject;
-    }
-}
-
-// Recherche dans le forum
-function setupSearchHandler() {
-    const searchInput = document.querySelector('.search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            filterPosts(searchTerm);
-        });
     }
 }
 
