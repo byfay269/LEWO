@@ -1081,6 +1081,8 @@ function setupFormHandlers() {
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            ```text
+e.preventDefault();
             handleRegister();
         });    }
 
@@ -1845,7 +1847,7 @@ function showAdminTab(tabName, buttonElement = null) {
         case 'users':
             loadAdminUsers();
             break;
-        cascase 'posts':
+        case 'posts':
             loadAdminPosts();
             break;
         case 'mentorships':
