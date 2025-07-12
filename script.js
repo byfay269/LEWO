@@ -6,10 +6,6 @@
 let currentSection = 'accueil';
 let isAuthenticated = false;
 let currentUser = null;
-
-// Variables globales
-let currentSectionOriginal = 'accueil'; // Preserving original variable
-let appCurrentSection = 'accueil';
 let currentExamType = 'bac';
 
 // ====================================
@@ -315,7 +311,7 @@ function showModal(modalId) {
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'none';
+        modal.stelement.style.display = 'none';
     }
 }
 
@@ -531,7 +527,7 @@ class AuthManager {
 // Instance globale du gestionnaire d'authentification
 let authManager;
 
-// Fichier principal - Variables globales et navigation
+ et navigation
 
 // Données de démonstration
 const samplePosts = [

@@ -1,5 +1,4 @@
 // Utilitaires globaux
-let currentSection = 'accueil';
 
 // Gestion d'erreur globale
 window.addEventListener('error', function(e) {
