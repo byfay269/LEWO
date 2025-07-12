@@ -1,6 +1,385 @@
-// Variables globales
-let currentUser = null;
+// ====================================
+// LEWO - Plateforme de Mentorat
+// Script principal
+// ====================================
+
 let currentSection = 'accueil';
+let isAuthenticated = false;
+let currentUser = null;
+
+// Variables globales
+let currentSectionOriginal = 'accueil'; // Preserving original variable
+let appCurrentSection = 'accueil';
+let currentExamType = 'bac';
+
+// ====================================
+// INITIALISATION
+// ====================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        console.log('Application LEWO initialisée avec succès');
+        initializeApp();
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+    }
+});
+
+function initializeApp() {
+    // Initialiser les modules
+    authManager = new AuthManager();
+    authManager.init();
+    forumManager.init();
+    mentorsManager.init();
+    contentManager.init();
+    profileManager.init();
+    adminManager.init();
+    setupEventListeners();
+    checkAuthStatus();
+    authManager.updateAuthButtons();
+
+    // Charger la section par défaut
+    showSection('accueil');
+}
+
+function setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.getAttribute('data-section');
+            if (section) {
+                showSection(section);
+            }
+        });
+    });
+
+    // Modals
+    setupModalEvents();
+
+    // Formulaires
+    setupFormHandlers();
+}
+
+function setupModalEvents() {
+    // Fermeture des modals
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+
+    // Fermeture en cliquant en dehors
+    window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            closeModal(e.target.id);
+        }
+    });
+}
+
+// ====================================
+// NAVIGATION
+// ====================================
+
+function showSection(sectionName) {
+    // Vérifier l'authentification pour certaines sections
+    const authRequiredSections = ['forum', 'mentors', 'profil', 'admin'];
+
+    if (authRequiredSections.includes(sectionName) && !isAuthenticated) {
+        showNotification('Vous devez être connecté pour accéder à cette section', 'warning');
+        showLogin();
+        return;
+    }
+
+    // Masquer toutes les sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.style.display = 'none';
+    });
+
+    // Afficher la section demandée
+    const targetSection = document.getElementById(sectionName);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+        currentSection = sectionName;
+
+        // Mettre à jour la navigation
+        updateNavigation(sectionName);
+
+        // Charger le contenu spécifique
+        loadSectionContent(sectionName);
+    } else {
+        // Charger depuis une page externe
+        loadExternalPage(sectionName);
+    }
+}
+
+function updateNavigation(activeSection) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('data-section') === activeSection) {
+            item.classList.add('active');
+        }
+    });
+}
+
+function loadExternalPage(pageName) {
+    const mainContent = document.querySelector('main');
+
+    fetch(`/pages/${pageName}.html`)
+        .then(response => {
+            if (!response.ok) throw new Error(`Page ${pageName} non trouvée`);
+            return response.text();
+        })
+        .then(html => {
+            mainContent.innerHTML = html;
+            currentSection = pageName;
+
+            // Réinitialiser les événements après chargement
+            setupFormHandlers();
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement de la page:', error);
+            mainContent.innerHTML = `
+                <div class="error-message">
+                    <h2>Erreur 404</h2>
+                    <p>La page "${pageName}" n'a pas été trouvée.</p>
+                    <button onclick="showSection('accueil')" class="btn btn-primary">Retour à l'accueil</button>
+                </div>
+            `;
+        });
+}
+
+function loadSectionContent(sectionName) {
+    switch(sectionName) {
+        case 'accueil':
+            loadAccueil();
+            break;
+        case 'forum':
+            loadForum();
+            break;
+        case 'mentors':
+            loadMentors();
+            break;
+        case 'annales':
+            loadAnnales();
+            break;
+        case 'resultats':
+            loadResultats();
+            break;
+        case 'metiers':
+            loadMetiers();
+            break;
+        case 'profil':
+            loadProfil();
+            break;
+        case 'admin':
+            loadAdmin();
+            break;
+    }
+}
+
+// ====================================
+// CHARGEMENT DES SECTIONS
+// ====================================
+
+function loadAccueil() {
+    // Charger les statistiques et actualités
+    fetchAPI('/api/stats/general')
+        .then(data => {
+            updateAccueilStats(data);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des statistiques:', error);
+        });
+}
+
+function loadForum() {
+    fetchAPI('/api/forum/posts')
+        .then(posts => {
+            displayForumPosts(posts);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du forum:', error);
+        });
+}
+
+function loadMentors() {
+    fetchAPI('/api/users/mentors')
+        .then(mentors => {
+            displayMentors(mentors);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des mentors:', error);
+        });
+}
+
+function loadAnnales() {
+    fetchAPI('/api/annales')
+        .then(annales => {
+            displayAnnales(annales);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des annales:', error);
+        });
+}
+
+function loadResultats() {
+    // Interface de recherche de résultats
+    const resultatsContainer = document.getElementById('resultats');
+    if (resultatsContainer) {
+        resultatsContainer.innerHTML = `
+            <div class="search-form">
+                <h2>Recherche de résultats d'examens</h2>
+                <form id="resultatsSearchForm">
+                    <div class="form-row">
+                        <input type="text" id="studentName" placeholder="Nom de l'étudiant">
+                        <input type="text" id="studentNumber" placeholder="Numéro d'inscription">
+                    </div>
+                    <div class="form-row">
+                        <select id="examType">
+                            <option value="">Type d'examen</option>
+                            <option value="bac">Baccalauréat</option>
+                            <option value="bepc">BEPC</option>
+                            <option value="concours_6eme">Concours 6ème</option>
+                        </select>
+                        <select id="examYear">
+                            <option value="">Année</option>
+                            ${generateYearOptions()}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Rechercher</button>
+                </form>
+            </div>
+            <div id="resultatsResults"></div>
+        `;
+
+        setupResultatsSearch();
+    }
+}
+
+function loadMetiers() {
+    fetchAPI('/api/careers')
+        .then(careers => {
+            displayCareers(careers);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des métiers:', error);
+        });
+}
+
+function loadProfil() {
+    if (!isAuthenticated) {
+        showLogin();
+        return;
+    }
+
+    fetchAPI('/api/users/profile')
+        .then(profile => {
+            displayUserProfile(profile);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du profil:', error);
+        });
+}
+
+function loadAdmin() {
+    if (!isAuthenticated || !currentUser || currentUser.type !== 'admin') {
+        showNotification('Accès refusé - Droits administrateur requis', 'error');
+        showSection('accueil');
+        return;
+    }
+
+    fetchAPI('/api/admin/dashboard')
+        .then(stats => {
+            displayAdminDashboard(stats);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du dashboard admin:', error);
+        });
+}
+
+// ====================================
+// UTILITAIRES
+// ====================================
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+function checkAuthStatus() {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        fetchAPI('/api/auth/verify')
+            .then(data => {
+                if (data.valid) {
+                    isAuthenticated = true;
+                    currentUser = data.user;
+                    authManager.updateAuthButtons();
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('authToken');
+            });
+    }
+}
+
+async function fetchAPI(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+    };
+
+    const response = await fetch(url, { ...defaultOptions, ...options });
+
+    if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+function generateYearOptions() {
+    const currentYear = new Date().getFullYear();
+    let options = '';
+    for (let year = currentYear; year >= currentYear - 10; year--) {
+        options += `<option value="${year}">${year}</option>`;
+    }
+    return options;
+}
+
+// Fonctions globales pour la compatibilité
+window.showSection = showSection;
+window.showModal = showModal;
+window.closeModal = closeModal;
+window.showNotification = showNotification;
 
 // Gestionnaire d'authentification
 class AuthManager {
@@ -145,157 +524,14 @@ class AuthManager {
     isAdmin() {
         return this.currentUser && this.currentUser.user_type === 'admin';
     }
+
+    init() {}
 }
 
 // Instance globale du gestionnaire d'authentification
 let authManager;
 
-// Variables globales pour la navigation
-let currentSection = 'accueil';
 // Fichier principal - Variables globales et navigation
-let appCurrentSection = 'accueil';
-let currentExamType = 'bac';
-
-// Navigation entre pages
-function navigateToSection(section) {
-    const pageContent = document.getElementById('pageContent');
-
-    // Vérifier si la section nécessite une authentification
-    if ((section === 'annales' || section === 'metiers' || section === 'resultats') && !authManager.currentUser) {
-        showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
-        showLogin();
-        return;
-    }
-
-    // Mettre à jour la navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-
-    const activeLink = document.querySelector(`[href="#${section}"]`);
-    if (activeLink) {
-        activeLink.classList.add('active');
-    }
-
-    // Charger le contenu de la page
-    loadPageContent(section);
-    appCurrentSection = section;
-}
-
-async function loadPageContent(section) {
-    const pageContent = document.getElementById('pageContent');
-
-    try {
-        const response = await fetch(`pages/${section}.html`);
-        if (response.ok) {
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const content = doc.querySelector('.page-content');
-
-            if (content) {
-                pageContent.innerHTML = content.innerHTML;
-                initializePageContent(section);
-            }
-        } else {
-            console.error(`Erreur lors du chargement de la page ${section}`);
-        }
-    } catch (error) {
-        console.error('Erreur de chargement:', error);
-    }
-}
-
-function initializePageContent(section) {
-    switch(section) {
-        case 'forum':
-            forumManager.loadPosts();
-            break;
-        case 'mentors':
-            mentorsManager.loadMentors();
-            break;
-        case 'annales':
-            contentManager.loadAnnales();
-            break;
-        case 'metiers':
-            contentManager.loadMetiers();
-            break;
-        case 'profil':
-            profileManager.loadProfile();
-            break;
-        case 'admin':
-            adminManager.loadDashboard();
-            break;
-    }
-}
-
-// Fonction d'initialisation spécifique à chaque page
-function initializePageSpecific(section) {
-    switch(section) {
-        case 'forum':
-            if (typeof initializeForum === 'function') {
-                initializeForum();
-            }
-            break;
-        case 'mentors':
-            if (typeof initializeMentors === 'function') {
-                initializeMentors();
-            }
-            break;
-        case 'annales':
-        case 'resultats':
-        case 'metiers':
-            if (typeof initializeContentPage === 'function') {
-                initializeContentPage(section);
-            }
-            break;
-        case 'profil':
-            if (typeof initializeProfile === 'function') {
-                initializeProfile();
-            }
-            break;
-    }
-}
-
-// Initialisation de l'application
-document.addEventListener('DOMContentLoaded', function() {
-    try {
-        // Initialiser tous les modules
-        authManager.init();
-        forumManager.init();
-        mentorsManager.init();
-        contentManager.init();
-        profileManager.init();
-        adminManager.init();
-
-        // Gestion de la navigation
-        const navLinks = document.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetSection = this.getAttribute('href').substring(1);
-                navigateToSection(targetSection);
-            });
-        });
-
-        // Fermeture des modales en cliquant à l'extérieur
-        window.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal')) {
-                e.target.style.display = 'none';
-            }
-        });
-
-        // Mettre à jour les boutons d'authentification
-        authManager.updateAuthButtons();
-
-        // Initialiser la page spécifique
-        initializePageSpecific(currentSection);
-
-        console.log('Application LEWO initialisée avec succès');
-    } catch (error) {
-        console.error('Erreur lors de l\'initialisation:', error);
-        showNotification('Erreur lors du chargement de l\'application', 'error');
-    }
-});
 
 // Données de démonstration
 const samplePosts = [
@@ -702,7 +938,7 @@ function setupSearchHandler() {
 // Appel après l'initialisation
 setTimeout(setupSearchHandler, 100);
 
-function showSection(sectionName) {
+function showSectionOriginal(sectionName) {
     // Vérifier si la section nécessite une authentification
     if ((sectionName === 'annales' || sectionName === 'metiers' || sectionName === 'resultats') && !authManager.currentUser) {
         showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
@@ -753,7 +989,7 @@ function showNewPost() {
     document.getElementById('newPostModal').style.display = 'block';
 }
 
-function closeModal(modalId) {
+function closeModalOriginal(modalId) {
     document.getElementById(modalId).style.display = 'none';
 }
 
@@ -808,7 +1044,7 @@ function createPostHTML(post) {
 }
 
 // Chargement des mentors
-function loadMentors() {
+function loadMentorsOriginal() {
     const mentorsGrid = document.getElementById('mentorsGrid');
     if (mentorsGrid) {
         mentorsGrid.innerHTML = sampleMentors.map(mentor => createMentorHTML(mentor)).join('');
@@ -986,7 +1222,7 @@ function updateAuthButtons() {
 }
 
 // Chargement des annales
-function loadAnnales() {
+function loadAnnalesOriginal() {
     const annalesGrid = document.getElementById('annalesGrid');
     if (annalesGrid) {
         annalesGrid.innerHTML = sampleAnnales.map(annale => createAnnaleHTML(annale)).join('');
@@ -1020,7 +1256,7 @@ function createAnnaleHTML(annale) {
 }
 
 // Chargement des métiers
-function loadMetiers() {
+function loadMetiersOriginal() {
     const metiersGrid = document.getElementById('metiersGrid');
     if (metiersGrid) {
         const filteredMetiers = currentMetierCategory === 'tous'
@@ -1111,46 +1347,6 @@ function contactMentor(mentorId) {
 
     const mentor = sampleMentors.find(m => m.id === mentorId);
     showNotification(`Demande de contact envoyée à ${mentor.name}`, 'success');
-}
-
-function showNotification(message, type = 'info') {
-    // Créer une notification toast
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 3000;
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease;
-    `;
-    notification.textContent = message;
-
-    document.body.appendChild(notification);
-
-    // Animation d'entrée
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-
-    // Suppression automatique
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                document.body.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
 }
 
 // Fonctions de gestion du profil
@@ -1426,7 +1622,7 @@ function filterPosts(searchTerm) {
 }
 
 // Chargement des résultats d'examens
-function loadResultats() {
+function loadResultatsOriginal() {
     showExamResults('bac');
 }
 
@@ -2005,27 +2201,105 @@ function manageSubjects() {
     showNotification('Gestion des matières - Fonctionnalité en développement', 'info');
 }
 
-// Gestionnaires d'événements
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser le gestionnaire d'authentification
-    authManager = new AuthManager();
+function displayForumPosts(posts) {
+    const forumPosts = document.getElementById('forumPosts');
+    if (forumPosts) {
+        forumPosts.innerHTML = posts.map(post => createPostHTML(post)).join('');
+    }
+}
 
-    // Navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
+function displayMentors(mentors) {
+    const mentorsGrid = document.getElementById('mentors');
+    if (mentorsGrid) {
+        mentorsGrid.innerHTML = mentors.map(mentor => createMentorHTML(mentor)).join('');
+    }
+}
+
+function displayAnnales(annales) {
+     const annalesGrid = document.getElementById('annalesGrid');
+     if (annalesGrid) {
+         annalesGrid.innerHTML = annales.map(annale => createAnnaleHTML(annale)).join('');
+     }
+}
+
+function displayCareers(careers) {
+    const metiersGrid = document.getElementById('metiersGrid');
+    if (metiersGrid) {
+        metiersGrid.innerHTML = careers.map(career => createMetierHTML(career)).join('');
+    }
+}
+
+function displayUserProfile(profile) {
+    const profileSection = document.getElementById('profil');
+    if (profileSection) {
+        profileSection.innerHTML = `<h2>Profil de ${profile.name}</h2><p>Email: ${profile.email}</p>`;
+    }
+}
+
+function displayAdminDashboard(stats) {
+    const adminDashboard = document.getElementById('admin');
+    if (adminDashboard) {
+        adminDashboard.innerHTML = `<h2>Dashboard Admin</h2><p>Total Users: ${stats.totalUsers}</p>`;
+    }
+}
+
+function updateAccueilStats(stats) {
+    const accueilSection = document.getElementById('accueil');
+    if (accueilSection) {
+        accueilSection.innerHTML = `<h2>Bienvenue sur LEWO</h2><p>Total Posts: ${stats.totalPosts}</p>`;
+    }
+}
+
+function setupResultatsSearch() {
+    const searchForm = document.getElementById('resultatsSearchForm');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const section = this.getAttribute('href').substring(1);
-            navigateToSection(section);
+            const studentName = document.getElementById('studentName').value;
+            const studentNumber = document.getElementById('studentNumber').value;
+            const examType = document.getElementById('examType').value;
+            const examYear = document.getElementById('examYear').value;
+
+            // Effectuer la recherche (simulée ici)
+            const results = searchExamResults(studentName, studentNumber, examType, examYear);
+            displayExamResults(results);
         });
-    });
+    }
+}
 
-     // Initialisation
-     authManager.updateAuthButtons();
+function searchExamResults(studentName, studentNumber, examType, examYear) {
+    // Simuler la recherche de résultats
+    let results = sampleResults[examType] || [];
 
-    // Charger les managers
-    forumManager.init();
-    mentorsManager.init();
-    contentManager.init();
-    adminManager.init();
-    profileManager.init();
-});
+    if (studentName) {
+        results = results.filter(result => result.name.toLowerCase().includes(studentName.toLowerCase()));
+    }
+
+    if (studentNumber) {
+        results = results.filter(result => result.numero.toLowerCase().includes(studentNumber.toLowerCase()));
+    }
+
+    if (examYear) {
+        results = results.filter(result => result.year === examYear);
+    }
+
+    return results;
+}
+
+function displayExamResults(results) {
+    const resultsContainer = document.getElementById('resultatsResults');
+    if (resultsContainer) {
+        if (results.length === 0) {
+            resultsContainer.innerHTML = '<p>Aucun résultat trouvé.</p>';
+        } else {
+            let html = '<ul>';
+            results.forEach(result => {
+                html += `<li>${result.name} - ${result.numero} - ${result.mention}</li>`;
+            });
+            html += '</ul>';
+            resultsContainer.innerHTML = html;
+        }
+    }
+}
+
+// Gestionnaires d'événements

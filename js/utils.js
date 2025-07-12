@@ -185,7 +185,7 @@ function showAdminTab(tabName, buttonElement) {
     adminManager.showAdminTab(tabName, buttonElement);
 }
 
-// Gestionnaires d'événements pour les formulaires
+// Gestionnaires d'événements po// Configuration pour les formulaires
 function setupFormHandlers() {
     const loginForm = document.querySelector('#loginModal .auth-form');
     if (loginForm) {

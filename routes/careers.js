@@ -1,4 +1,7 @@
+` tags. I will pay close attention to indentation, structure, and completeness.
 
+```
+<replit_final_file>
 const express = require('express');
 const { query } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
@@ -6,39 +9,34 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Récupérer tous les métiers
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const category = req.query.category;
-    const search = req.query.search;
+    const { category, education, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
 
-    let whereClause = 'WHERE is_active = TRUE';
-    let params = [];
-    let paramCount = 0;
+    let whereClause = 'WHERE c.is_active = TRUE';
+    const params = [];
 
-    if (category && category !== 'tous') {
-      paramCount++;
-      whereClause += ` AND category = $${paramCount}`;
+    if (category) {
+      whereClause += ' AND c.category = ?';
       params.push(category);
     }
-
-    if (search) {
-      paramCount++;
-      whereClause += ` AND (title ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
-      params.push(`%${search}%`);
+    if (education) {
+      whereClause += ' AND c.required_education LIKE ?';
+      params.push(`%${education}%`);
     }
 
-    const result = await query(
-      `SELECT id, title, category, icon_emoji, description,
-              required_education, salary_range_min, salary_range_max,
-              currency, skills, sectors, job_prospects
-       FROM careers
-       ${whereClause}
-       ORDER BY category, title`,
-      params
-    );
+    const result = await query(`
+      SELECT 
+        c.id, c.title, c.category, c.description, c.required_education,
+        c.salary_range_min, c.salary_range_max, c.icon_emoji
+      FROM careers c
+      ${whereClause}
+      ORDER BY c.category, c.title
+      LIMIT ? OFFSET ?
+    `, [...params, parseInt(limit), parseInt(offset)]);
 
-    res.json({ careers: result.rows });
-
+    res.json(result.rows);
   } catch (error) {
     console.error('Erreur lors de la récupération des métiers:', error);
     res.status(500).json({ message: 'Erreur interne du serveur' });
@@ -46,21 +44,19 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Récupérer un métier spécifique
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const careerId = req.params.id;
+    const { id } = req.params;
 
-    const result = await query(
-      `SELECT * FROM careers WHERE id = $1 AND is_active = TRUE`,
-      [careerId]
-    );
+    const result = await query(`
+      SELECT * FROM careers WHERE id = ? AND is_active = TRUE
+    `, [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Métier non trouvé' });
     }
 
-    res.json({ career: result.rows[0] });
-
+    res.json(result.rows[0]);
   } catch (error) {
     console.error('Erreur lors de la récupération du métier:', error);
     res.status(500).json({ message: 'Erreur interne du serveur' });

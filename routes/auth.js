@@ -17,7 +17,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Vérifier si l'email existe déjà
-    const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+    const existingUser = await query('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: 'Cet email est déjà utilisé' });
     }
@@ -29,22 +29,26 @@ router.post('/register', async (req, res) => {
     // Créer l'utilisateur avec transaction
     const result = await transaction(async (client) => {
       // Insérer l'utilisateur
-      const userResult = await client.query(
+      const userResult = await client.execute(
         `INSERT INTO users (email, password_hash, user_type, is_verified)
-         VALUES ($1, $2, $3, true) RETURNING id, email, user_type`,
+         VALUES (?, ?, ?, true)`,
         [email, hashedPassword, userType]
       );
-
-      const userId = userResult.rows[0].id;
+      
+      const userId = userResult.insertId;
+      const userSelectResult = await client.execute(
+        'SELECT id, email, user_type FROM users WHERE id = ?',
+        [userId]
+      );
 
       // Créer le profil
-      await client.query(
+      await client.execute(
         `INSERT INTO user_profiles (user_id, first_name, last_name, education_level)
-         VALUES ($1, $2, $3, $4)`,
+         VALUES (?, ?, ?, ?)`,
         [userId, firstName, lastName, educationLevel]
       );
 
-      return userResult.rows[0];
+      return userSelectResult[0][0];
     });
 
     // Générer le token
@@ -85,7 +89,7 @@ router.post('/login', async (req, res) => {
               p.location, p.bio, p.profile_picture_url
        FROM users u
        LEFT JOIN user_profiles p ON u.id = p.user_id
-       WHERE u.email = $1`,
+       WHERE u.email = ?`,
       [email]
     );
 
@@ -106,7 +110,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Mettre à jour la dernière connexion
-    await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+    await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
 
     // Générer le token
     const token = generateToken(user.id, user.email, user.user_type);
@@ -153,7 +157,7 @@ router.get('/verify', async (req, res) => {
               p.first_name, p.last_name, p.education_level
        FROM users u
        LEFT JOIN user_profiles p ON u.id = p.user_id
-       WHERE u.id = $1`,
+       WHERE u.id = ?`,
       [decoded.userId]
     );
 
