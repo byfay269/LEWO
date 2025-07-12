@@ -504,6 +504,23 @@ function setupFormHandlers() {
             handleNewPost();
         });
     }
+
+    // Formulaire d'édition de profil
+    const profileForm = document.querySelector('#profileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleProfileUpdate();
+        });
+    }
+
+    // Gestion du changement de photo
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            handlePhotoChange(e);
+        });
+    }
 }
 
 function handleLogin() {
@@ -512,8 +529,20 @@ function handleLogin() {
     
     currentUser = {
         email: email,
-        name: "Utilisateur",
-        type: "student"
+        firstName: "Utilisateur",
+        lastName: "Test",
+        name: "Utilisateur Test",
+        type: "student",
+        educationLevel: "lycee",
+        institution: "",
+        location: "",
+        bio: "Bienvenue sur LEWO ! N'hésitez pas à compléter votre profil.",
+        interests: [],
+        photo: null,
+        postsCount: 0,
+        commentsCount: 0,
+        helpedCount: 0,
+        reputationScore: 100
     };
 
     closeModal('loginModal');
@@ -526,11 +555,25 @@ function handleRegister() {
     const firstname = document.querySelector('#registerModal input[placeholder="Prénom"]').value;
     const lastname = document.querySelector('#registerModal input[placeholder="Nom"]').value;
     const email = document.querySelector('#registerModal input[type="email"]').value;
+    const userType = document.querySelector('#registerModal select').value;
+    const educationLevel = document.querySelectorAll('#registerModal select')[1].value;
     
     currentUser = {
         email: email,
+        firstName: firstname,
+        lastName: lastname,
         name: `${firstname} ${lastname}`,
-        type: "student"
+        type: userType,
+        educationLevel: educationLevel,
+        institution: "",
+        location: "",
+        bio: "Bienvenue sur LEWO ! N'hésitez pas à compléter votre profil pour mieux vous faire connaître de la communauté.",
+        interests: [],
+        photo: null,
+        postsCount: 0,
+        commentsCount: 0,
+        helpedCount: 0,
+        reputationScore: 100
     };
 
     closeModal('registerModal');
@@ -574,6 +617,9 @@ function updateAuthButtons() {
         document.querySelectorAll('.auth-required').forEach(link => {
             link.classList.add('available');
         });
+        
+        // Mettre à jour le profil
+        updateProfileSection();
     }
 }
 
@@ -728,6 +774,245 @@ function showNotification(message, type = 'info') {
             document.body.removeChild(notification);
         }, 300);
     }, 3000);
+}
+
+// Fonctions de gestion du profil
+function updateProfileSection() {
+    const profileContent = document.getElementById('profileContent');
+    if (!currentUser) {
+        profileContent.innerHTML = '<p class="text-center">Connectez-vous pour voir votre profil</p>';
+        return;
+    }
+
+    const user = currentUser;
+    profileContent.innerHTML = `
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-avatar-display">
+                    ${user.photo ? `<img src="${user.photo}" alt="Photo de profil">` : '👤'}
+                </div>
+                <h2 class="profile-name">${user.name}</h2>
+                <span class="profile-type">${getUserTypeLabel(user.type)}</span>
+            </div>
+
+            <div class="profile-info">
+                <div class="profile-section">
+                    <h3>📝 À propos</h3>
+                    <div class="profile-bio">
+                        ${user.bio || 'Aucune biographie renseignée.'}
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3>📋 Informations</h3>
+                    <div class="profile-details">
+                        <div class="detail-item">
+                            <div class="detail-icon">📧</div>
+                            <div class="detail-content">
+                                <div class="detail-label">Email</div>
+                                <div class="detail-value">${user.email}</div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">🎓</div>
+                            <div class="detail-content">
+                                <div class="detail-label">Niveau</div>
+                                <div class="detail-value">${getEducationLevelLabel(user.educationLevel)}</div>
+                            </div>
+                        </div>
+                        ${user.institution ? `
+                        <div class="detail-item">
+                            <div class="detail-icon">🏫</div>
+                            <div class="detail-content">
+                                <div class="detail-label">Établissement</div>
+                                <div class="detail-value">${user.institution}</div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${user.location ? `
+                        <div class="detail-item">
+                            <div class="detail-icon">📍</div>
+                            <div class="detail-content">
+                                <div class="detail-label">Localisation</div>
+                                <div class="detail-value">${user.location}</div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                ${user.interests && user.interests.length > 0 ? `
+                <div class="profile-section">
+                    <h3>🎯 Centres d'intérêt</h3>
+                    <div class="interests-display">
+                        ${user.interests.map(interest => `<span class="interest-badge">${getSubjectLabel(interest)}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="profile-section">
+                    <h3>📊 Statistiques</h3>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">${user.postsCount || 0}</span>
+                            <span class="stat-label">Posts</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${user.commentsCount || 0}</span>
+                            <span class="stat-label">Commentaires</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${user.helpedCount || 0}</span>
+                            <span class="stat-label">Personnes aidées</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${user.reputationScore || 0}</span>
+                            <span class="stat-label">Réputation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button class="btn btn-primary btn-large" onclick="showEditProfile()">
+                        ✏️ Modifier mon profil
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function showEditProfile() {
+    if (!currentUser) {
+        showLogin();
+        return;
+    }
+
+    // Pré-remplir le formulaire avec les données actuelles
+    document.getElementById('editFirstName').value = currentUser.firstName || '';
+    document.getElementById('editLastName').value = currentUser.lastName || '';
+    document.getElementById('editEmail').value = currentUser.email || '';
+    document.getElementById('editUserType').value = currentUser.type || '';
+    document.getElementById('editEducationLevel').value = currentUser.educationLevel || '';
+    document.getElementById('editInstitution').value = currentUser.institution || '';
+    document.getElementById('editLocation').value = currentUser.location || '';
+    document.getElementById('editBio').value = currentUser.bio || '';
+
+    // Cocher les centres d'intérêt existants
+    const interestCheckboxes = document.querySelectorAll('input[name="interests"]');
+    interestCheckboxes.forEach(checkbox => {
+        checkbox.checked = currentUser.interests && currentUser.interests.includes(checkbox.value);
+    });
+
+    // Afficher la photo actuelle
+    const currentPhoto = document.getElementById('currentPhoto');
+    if (currentUser.photo) {
+        currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${currentUser.photo}" alt="Photo actuelle">`;
+    }
+
+    document.getElementById('editProfileModal').style.display = 'block';
+}
+
+function handleProfileUpdate() {
+    const firstName = document.getElementById('editFirstName').value;
+    const lastName = document.getElementById('editLastName').value;
+    const email = document.getElementById('editEmail').value;
+    const userType = document.getElementById('editUserType').value;
+    const educationLevel = document.getElementById('editEducationLevel').value;
+    const institution = document.getElementById('editInstitution').value;
+    const location = document.getElementById('editLocation').value;
+    const bio = document.getElementById('editBio').value;
+
+    // Récupérer les centres d'intérêt sélectionnés
+    const selectedInterests = Array.from(document.querySelectorAll('input[name="interests"]:checked'))
+        .map(checkbox => checkbox.value);
+
+    // Mettre à jour l'utilisateur actuel
+    currentUser = {
+        ...currentUser,
+        firstName,
+        lastName,
+        name: `${firstName} ${lastName}`,
+        email,
+        type: userType,
+        educationLevel,
+        institution,
+        location,
+        bio,
+        interests: selectedInterests
+    };
+
+    closeModal('editProfileModal');
+    updateProfileSection();
+    showNotification('Profil mis à jour avec succès !', 'success');
+}
+
+function handlePhotoChange(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification('La photo ne doit pas dépasser 5 MB', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const photoUrl = e.target.result;
+            
+            // Mettre à jour l'aperçu
+            const currentPhoto = document.getElementById('currentPhoto');
+            currentPhoto.querySelector('.profile-avatar-large').innerHTML = `<img src="${photoUrl}" alt="Nouvelle photo">`;
+            
+            // Sauvegarder dans l'utilisateur actuel
+            if (currentUser) {
+                currentUser.photo = photoUrl;
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removePhoto() {
+    const currentPhoto = document.getElementById('currentPhoto');
+    currentPhoto.querySelector('.profile-avatar-large').innerHTML = '👤';
+    
+    if (currentUser) {
+        currentUser.photo = null;
+    }
+    
+    document.getElementById('photoInput').value = '';
+    showNotification('Photo supprimée', 'info');
+}
+
+function getUserTypeLabel(type) {
+    switch(type) {
+        case 'student': return 'Élève/Étudiant';
+        case 'mentor': return 'Mentor';
+        case 'admin': return 'Administrateur';
+        default: return 'Utilisateur';
+    }
+}
+
+function getEducationLevelLabel(level) {
+    switch(level) {
+        case 'college': return 'Collège';
+        case 'lycee': return 'Lycée';
+        case 'universite': return 'Université';
+        case 'professionnel': return 'Professionnel';
+        default: return 'Non spécifié';
+    }
+}
+
+function getSubjectLabel(subject) {
+    switch(subject) {
+        case 'maths': return 'Mathématiques';
+        case 'francais': return 'Français';
+        case 'sciences': return 'Sciences';
+        case 'histoire': return 'Histoire-Géo';
+        case 'anglais': return 'Anglais';
+        case 'informatique': return 'Informatique';
+        default: return subject;
+    }
 }
 
 // Recherche dans le forum

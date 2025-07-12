@@ -332,6 +332,84 @@
         </div>
     </div>
 
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier mon profil</h3>
+                <span class="close" onclick="closeModal('editProfileModal')">&times;</span>
+            </div>
+            <form class="profile-form" id="profileForm">
+                <div class="profile-photo-section">
+                    <div class="current-photo" id="currentPhoto">
+                        <div class="profile-avatar-large">👤</div>
+                    </div>
+                    <div class="photo-controls">
+                        <input type="file" id="photoInput" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('photoInput').click()">
+                            📷 Changer la photo
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="removePhoto()">
+                            🗑️ Supprimer
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <input type="text" id="editFirstName" placeholder="Prénom" required>
+                    <input type="text" id="editLastName" placeholder="Nom" required>
+                </div>
+                
+                <input type="email" id="editEmail" placeholder="Email" required>
+                
+                <select id="editUserType" required>
+                    <option value="">Vous êtes...</option>
+                    <option value="student">Élève/Étudiant</option>
+                    <option value="mentor">Mentor</option>
+                </select>
+                
+                <select id="editEducationLevel" required>
+                    <option value="">Niveau d'études</option>
+                    <option value="college">Collège</option>
+                    <option value="lycee">Lycée</option>
+                    <option value="universite">Université</option>
+                    <option value="professionnel">Professionnel</option>
+                </select>
+                
+                <input type="text" id="editInstitution" placeholder="Établissement/Institution">
+                
+                <input type="text" id="editLocation" placeholder="Localisation (ex: Moroni, Grande Comore)">
+                
+                <textarea id="editBio" placeholder="Parlez-nous de vous, vos passions, vos objectifs..." rows="4"></textarea>
+                
+                <div class="interests-section">
+                    <label>Matières d'intérêt :</label>
+                    <div class="interests-grid">
+                        <label class="interest-item">
+                            <input type="checkbox" name="interests" value="maths"> Mathématiques
+                        </label>
+                        <label class="interest-item">
+                            <input type="checkbox" name="interests" value="francais"> Français
+                        </label>
+                        <label class="interest-item">
+                            <input type="checkbox" name="interests" value="sciences"> Sciences
+                        </label>
+                        <label class="interest-item">
+                            <input type="checkbox" name="interests" value="histoire"> Histoire-Géo
+                        </label>
+                        <label class="interest-item">
+                            <input type="checkbox" name="interests" value="anglais"> Anglais
+                        </label>
+                        <label class="interest-item">
+                            <input type="checkbox" name="interests" value="informatique"> Informatique
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full">Enregistrer les modifications</button>
+            </form>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
