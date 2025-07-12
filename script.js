@@ -195,6 +195,127 @@ const sampleMetiers = [
 ];
 
 let currentMetierCategory = 'tous';
+let currentExamType = 'bac';
+
+// Données de démonstration pour les résultats
+const sampleResults = {
+    bac: [
+        {
+            id: 1,
+            name: "AHMED Said Ibrahim",
+            numero: "BAC2024001",
+            year: "2024",
+            region: "ngazidja",
+            serie: "C",
+            mention: "Très Bien",
+            status: "admitted",
+            moyenne: 16.75
+        },
+        {
+            id: 2,
+            name: "FATIMA Aïcha Mohamed",
+            numero: "BAC2024002", 
+            year: "2024",
+            region: "ndzuani",
+            serie: "D",
+            mention: "Bien",
+            status: "admitted",
+            moyenne: 14.25
+        },
+        {
+            id: 3,
+            name: "IBRAHIM Ali Soilihi",
+            numero: "BAC2024003",
+            year: "2024", 
+            region: "mwali",
+            serie: "L",
+            mention: "Assez Bien",
+            status: "admitted",
+            moyenne: 12.50
+        },
+        {
+            id: 4,
+            name: "MARIAMA Hassan Abdou",
+            numero: "BAC2024004",
+            year: "2024",
+            region: "ngazidja",
+            serie: "S",
+            mention: "-",
+            status: "failed",
+            moyenne: 8.75
+        }
+    ],
+    bepc: [
+        {
+            id: 1,
+            name: "MOHAMED Anli Said",
+            numero: "BEPC2024001",
+            year: "2024",
+            region: "ngazidja",
+            etablissement: "Collège de Moroni",
+            mention: "Bien",
+            status: "admitted",
+            moyenne: 13.80
+        },
+        {
+            id: 2,
+            name: "ZAINA Combo Moussa",
+            numero: "BEPC2024002",
+            year: "2024",
+            region: "ndzuani",
+            etablissement: "Collège de Mutsamudu",
+            mention: "Assez Bien",
+            status: "admitted",
+            moyenne: 11.60
+        },
+        {
+            id: 3,
+            name: "HAMADI Abdou Salim",
+            numero: "BEPC2024003",
+            year: "2024",
+            region: "mwali",
+            etablissement: "Collège de Fomboni",
+            mention: "-",
+            status: "failed",
+            moyenne: 9.25
+        }
+    ],
+    concours: [
+        {
+            id: 1,
+            name: "AMINA Saïd Omar",
+            numero: "CONC2024001",
+            year: "2024",
+            region: "ngazidja",
+            ecole_origine: "EPP Moroni Centre",
+            rang: 1,
+            status: "admitted",
+            note: 18.5
+        },
+        {
+            id: 2,
+            name: "YOUSSOUF Ali Hassan",
+            numero: "CONC2024002", 
+            year: "2024",
+            region: "ndzuani",
+            ecole_origine: "EPP Mutsamudu",
+            rang: 15,
+            status: "admitted",
+            note: 16.25
+        },
+        {
+            id: 3,
+            name: "SALIMA Mohamed Abdou",
+            numero: "CONC2024003",
+            year: "2024",
+            region: "mwali",
+            ecole_origine: "EPP Fomboni",
+            rang: 156,
+            status: "failed",
+            note: 8.75
+        }
+    ]
+};
 
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
@@ -225,11 +346,14 @@ function initializeApp() {
 
     // Gestion des formulaires
     setupFormHandlers();
+    
+    // Initialiser les résultats
+    loadResultats();
 }
 
 function showSection(sectionName) {
     // Vérifier si la section nécessite une authentification
-    if ((sectionName === 'annales' || sectionName === 'metiers') && !currentUser) {
+    if ((sectionName === 'annales' || sectionName === 'metiers' || sectionName === 'resultats') && !currentUser) {
         showNotification('Veuillez vous connecter pour accéder à cette section', 'error');
         showLogin();
         return;
@@ -624,4 +748,172 @@ function filterPosts(searchTerm) {
     
     const forumPosts = document.getElementById('forumPosts');
     forumPosts.innerHTML = filteredPosts.map(post => createPostHTML(post)).join('');
+}
+
+// Chargement des résultats d'examens
+function loadResultats() {
+    showExamResults('bac');
+}
+
+function showExamResults(examType) {
+    currentExamType = examType;
+    
+    // Mettre à jour les boutons
+    document.querySelectorAll('.exam-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Charger les résultats
+    loadExamResults();
+}
+
+function loadExamResults() {
+    const results = sampleResults[currentExamType] || [];
+    const content = document.getElementById('resultatsContent');
+    
+    // Afficher le loading
+    content.innerHTML = `
+        <div class="loading-results">
+            <div class="loading-spinner"></div>
+            <p>Chargement des résultats...</p>
+        </div>
+    `;
+    
+    // Simuler un délai de chargement
+    setTimeout(() => {
+        if (results.length === 0) {
+            content.innerHTML = `
+                <div class="no-results">
+                    <div class="no-results-icon">📋</div>
+                    <h3>Aucun résultat disponible</h3>
+                    <p>Les résultats pour cette catégorie ne sont pas encore disponibles.</p>
+                </div>
+            `;
+        } else {
+            content.innerHTML = createResultsTableHTML(results);
+            updateResultsStats(results);
+        }
+    }, 1000);
+}
+
+function createResultsTableHTML(results) {
+    const headers = getTableHeaders(currentExamType);
+    
+    return `
+        <table class="resultats-table">
+            <thead>
+                <tr>
+                    ${headers.map(header => `<th>${header}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody>
+                ${results.map(result => createResultRowHTML(result)).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function getTableHeaders(examType) {
+    switch(examType) {
+        case 'bac':
+            return ['Nom', 'Numéro', 'Série', 'Moyenne', 'Mention', 'Statut'];
+        case 'bepc':
+            return ['Nom', 'Numéro', 'Établissement', 'Moyenne', 'Mention', 'Statut'];
+        case 'concours':
+            return ['Nom', 'Numéro', 'École d\'origine', 'Note', 'Rang', 'Statut'];
+        default:
+            return [];
+    }
+}
+
+function createResultRowHTML(result) {
+    let specificCells = '';
+    
+    switch(currentExamType) {
+        case 'bac':
+            specificCells = `
+                <td>${result.serie}</td>
+                <td>${result.moyenne}/20</td>
+                <td class="result-mention">${result.mention}</td>
+            `;
+            break;
+        case 'bepc':
+            specificCells = `
+                <td>${result.etablissement}</td>
+                <td>${result.moyenne}/20</td>
+                <td class="result-mention">${result.mention}</td>
+            `;
+            break;
+        case 'concours':
+            specificCells = `
+                <td>${result.ecole_origine}</td>
+                <td>${result.note}/20</td>
+                <td>${result.rang}</td>
+            `;
+            break;
+    }
+    
+    return `
+        <tr>
+            <td><strong>${result.name}</strong></td>
+            <td>${result.numero}</td>
+            ${specificCells}
+            <td>
+                <span class="result-status ${result.status}">
+                    ${result.status === 'admitted' ? '✅ Admis' : '❌ Ajourné'}
+                </span>
+            </td>
+        </tr>
+    `;
+}
+
+function updateResultsStats(results) {
+    const total = results.length;
+    const admitted = results.filter(r => r.status === 'admitted').length;
+    const successRate = total > 0 ? Math.round((admitted / total) * 100) : 0;
+    
+    document.getElementById('totalCandidates').textContent = total;
+    document.getElementById('admittedCandidates').textContent = admitted;
+    document.getElementById('successRate').textContent = successRate + '%';
+}
+
+function searchResults() {
+    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+    const yearFilter = document.getElementById('yearFilter').value;
+    const regionFilter = document.getElementById('regionFilter').value;
+    
+    let filteredResults = sampleResults[currentExamType] || [];
+    
+    // Filtrer par terme de recherche
+    if (searchTerm) {
+        filteredResults = filteredResults.filter(result => 
+            result.name.toLowerCase().includes(searchTerm) ||
+            result.numero.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Filtrer par année
+    if (yearFilter) {
+        filteredResults = filteredResults.filter(result => result.year === yearFilter);
+    }
+    
+    // Filtrer par région
+    if (regionFilter) {
+        filteredResults = filteredResults.filter(result => result.region === regionFilter);
+    }
+    
+    const content = document.getElementById('resultatsContent');
+    if (filteredResults.length === 0) {
+        content.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">🔍</div>
+                <h3>Aucun résultat trouvé</h3>
+                <p>Aucun résultat ne correspond à vos critères de recherche.</p>
+            </div>
+        `;
+    } else {
+        content.innerHTML = createResultsTableHTML(filteredResults);
+        updateResultsStats(filteredResults);
+    }
 }
