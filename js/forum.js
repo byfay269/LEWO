@@ -1,132 +1,333 @@
 
-// Module forum
-const forumManager = {
-    posts: [
-        {
-            id: 1,
-            title: "Aide sur les équations du second degré",
-            content: "Bonjour, je n'arrive pas à résoudre cette équation : x² - 5x + 6 = 0. Quelqu'un peut-il m'expliquer la méthode ?",
-            author: "Amina K.",
-            subject: "Mathématiques",
-            category: "Question",
-            level: "Lycée",
-            date: "Il y a 2h",
-            replies: 3,
-            likes: 5
-        },
-        {
-            id: 2,
-            title: "Exercice de français - analyse de texte",
-            content: "Voici un exercice d'analyse que j'ai préparé pour mes camarades de première. N'hésitez pas à proposer vos réponses !",
-            author: "Said M.",
-            subject: "Français",
-            category: "Exercice",
-            level: "Lycée",
-            date: "Il y a 4h",
-            replies: 7,
-            likes: 12
-        }
-    ],
+// Gestion du forum
+class ForumManager {
+    constructor() {
+        this.posts = [];
+        this.currentFilters = {
+            search: '',
+            subject: '',
+            level: ''
+        };
+    }
 
-    init() {
-        this.setupFormHandlers();
-    },
-
-    setupFormHandlers() {
-        const postForm = document.querySelector('#newPostModal .post-form');
-        if (postForm) {
-            postForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleNewPost();
+    async loadPosts() {
+        try {
+            const params = new URLSearchParams();
+            Object.entries(this.currentFilters).forEach(([key, value]) => {
+                if (value) params.append(key, value);
             });
+
+            const response = await fetch(`/api/forum/posts?${params}`, {
+                headers: authManager.isLoggedIn() ? {
+                    'Authorization': `Bearer ${authManager.getToken()}`
+                } : {}
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.posts = data.posts;
+                this.displayPosts();
+            } else {
+                showNotification('Erreur lors du chargement des posts', 'error');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            this.displayDemoPosts();
         }
-    },
+    }
 
-    loadPosts() {
-        const forumPosts = document.getElementById('forumPosts');
-        if (forumPosts) {
-            forumPosts.innerHTML = this.posts.map(post => this.createPostHTML(post)).join('');
-        }
-    },
+    displayPosts() {
+        const container = document.getElementById('forumPosts');
+        if (!container) return;
 
-    createPostHTML(post) {
-        return `
-            <div class="forum-post">
-                <div class="post-header">
-                    <div>
-                        <h3 class="post-title">${post.title}</h3>
-                        <div class="post-meta">
-                            <span>Par ${post.author}</span>
-                            <span>${post.date}</span>
-                            <span>${post.level}</span>
-                        </div>
-                    </div>
-                    <span class="post-category">${post.subject}</span>
+        if (this.posts.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>Aucun post trouvé</h3>
+                    <p>Soyez le premier à poster quelque chose !</p>
+                    ${authManager.isLoggedIn() ? `
+                        <button class="btn btn-primary" onclick="showNewPost()">Créer un post</button>
+                    ` : ''}
                 </div>
-                <div class="post-content">
-                    ${post.content}
-                </div>
-                <div class="post-actions">
-                    <a href="#" class="post-action">
-                        👍 ${post.likes} J'aime
-                    </a>
-                    <a href="#" class="post-action">
-                        💬 ${post.replies} Réponses
-                    </a>
-                    <a href="#" class="post-action">
-                        📤 Partager
-                    </a>
-                </div>
-            </div>
-        `;
-    },
-
-    handleNewPost() {
-        if (!authManager.currentUser) {
-            showLogin();
+            `;
             return;
         }
 
-        const title = document.querySelector('#newPostModal input[placeholder="Titre de votre post"]').value;
-        const content = document.querySelector('#newPostModal textarea').value;
+        container.innerHTML = this.posts.map(post => this.createPostHTML(post)).join('');
+    }
 
-        const newPost = {
-            id: this.posts.length + 1,
-            title: title,
-            content: content,
-            author: authManager.currentUser.name,
-            subject: "Général",
-            category: "Question",
-            level: "Lycée",
-            date: "À l'instant",
-            replies: 0,
-            likes: 0
-        };
+    displayDemoPosts() {
+        const demoPosts = [
+            {
+                id: 1,
+                title: "Aide en mathématiques - Équations du second degré",
+                content: "Bonjour, j'ai des difficultés avec les équations du second degré. Quelqu'un peut-il m'expliquer ?",
+                author_name: "Amina K.",
+                subject_name: "Mathématiques",
+                education_level: "lycee",
+                post_type: "question",
+                created_at: new Date().toISOString(),
+                like_count: 5,
+                comment_count: 3,
+                view_count: 12
+            },
+            {
+                id: 2,
+                title: "Exercice de physique - Mécanique",
+                content: "Voici un exercice de mécanique que j'ai résolu. N'hésitez pas à commenter !",
+                author_name: "Ibrahim S.",
+                subject_name: "Physique",
+                education_level: "lycee",
+                post_type: "exercice",
+                created_at: new Date(Date.now() - 86400000).toISOString(),
+                like_count: 8,
+                comment_count: 6,
+                view_count: 25
+            }
+        ];
 
-        this.posts.unshift(newPost);
-        this.loadPosts();
-        closeModal('newPostModal');
-        showNotification('Post publié avec succès !', 'success');
-    },
-
-    filterPosts(searchTerm) {
-        const filteredPosts = this.posts.filter(post => 
-            post.title.toLowerCase().includes(searchTerm) ||
-            post.content.toLowerCase().includes(searchTerm) ||
-            post.subject.toLowerCase().includes(searchTerm)
-        );
-
-        const forumPosts = document.getElementById('forumPosts');
-        if (forumPosts) {
-            forumPosts.innerHTML = filteredPosts.map(post => this.createPostHTML(post)).join('');
+        const container = document.getElementById('forumPosts');
+        if (container) {
+            container.innerHTML = demoPosts.map(post => this.createPostHTML(post)).join('');
         }
     }
-};
 
+    createPostHTML(post) {
+        const postTypeIcons = {
+            'question': '❓',
+            'exercice': '📝',
+            'discussion': '💬',
+            'aide': '🤝'
+        };
+
+        const levelLabels = {
+            'college': 'Collège',
+            'lycee': 'Lycée',
+            'universite': 'Université'
+        };
+
+        return `
+            <div class="forum-post" onclick="viewPost(${post.id})">
+                <div class="post-header">
+                    <div class="post-meta">
+                        <span class="post-type">${postTypeIcons[post.post_type] || '📄'} ${post.post_type}</span>
+                        <span class="post-subject">${post.subject_name || 'Général'}</span>
+                        <span class="post-level">${levelLabels[post.education_level] || post.education_level}</span>
+                    </div>
+                    <div class="post-date">${this.formatDate(post.created_at)}</div>
+                </div>
+                
+                <h3 class="post-title">${post.title}</h3>
+                <p class="post-excerpt">${this.truncateText(post.content, 150)}</p>
+                
+                <div class="post-author">
+                    <span class="author-name">👤 ${post.author_name || 'Anonyme'}</span>
+                </div>
+                
+                <div class="post-stats">
+                    <span class="stat">👁️ ${post.view_count || 0}</span>
+                    <span class="stat">👍 ${post.like_count || 0}</span>
+                    <span class="stat">💬 ${post.comment_count || 0}</span>
+                </div>
+                
+                <div class="post-actions">
+                    ${authManager.isLoggedIn() ? `
+                        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); likePost(${post.id})">
+                            👍 J'aime
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); replyToPost(${post.id})">
+                            💬 Répondre
+                        </button>
+                    ` : `
+                        <p class="auth-required-msg">Connectez-vous pour interagir</p>
+                    `}
+                </div>
+            </div>
+        `;
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+            return "Aujourd'hui";
+        } else if (diffDays === 1) {
+            return "Hier";
+        } else if (diffDays < 7) {
+            return `Il y a ${diffDays} jours`;
+        } else {
+            return date.toLocaleDateString('fr-FR');
+        }
+    }
+
+    truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substr(0, maxLength) + '...';
+    }
+
+    async createPost(postData) {
+        if (!authManager.isLoggedIn()) {
+            showNotification('Connectez-vous pour créer un post', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/forum/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authManager.getToken()}`
+                },
+                body: JSON.stringify(postData)
+            });
+
+            if (response.ok) {
+                showNotification('Post créé avec succès !', 'success');
+                hideModal();
+                this.loadPosts();
+            } else {
+                const error = await response.json();
+                showNotification(error.message, 'error');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors de la création du post', 'error');
+        }
+    }
+
+    filterPosts() {
+        const searchInput = document.querySelector('.search-input');
+        const subjectSelect = document.querySelectorAll('.filter-select')[0];
+        const levelSelect = document.querySelectorAll('.filter-select')[1];
+
+        this.currentFilters = {
+            search: searchInput ? searchInput.value : '',
+            subject: subjectSelect ? subjectSelect.value : '',
+            level: levelSelect ? levelSelect.value : ''
+        };
+
+        this.loadPosts();
+    }
+}
+
+// Instance globale
+let forumManager;
+
+// Fonctions globales
 function showNewPost() {
-    if (!authManager.currentUser) {
-        showLogin();
+    if (!authManager.isLoggedIn()) {
+        showNotification('Connectez-vous pour créer un post', 'error');
         return;
     }
-    document.getElementById('newPostModal').style.display = 'block';
+
+    const modalContent = `
+        <div class="modal-header">
+            <h3>Nouveau Post</h3>
+            <button class="modal-close" onclick="hideModal()">&times;</button>
+        </div>
+        <form id="newPostForm" onsubmit="handleNewPostSubmit(event)">
+            <div class="form-group">
+                <label>Type de post</label>
+                <select name="post_type" required>
+                    <option value="question">❓ Question</option>
+                    <option value="exercice">📝 Exercice</option>
+                    <option value="discussion">💬 Discussion</option>
+                    <option value="aide">🤝 Demande d'aide</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Matière</label>
+                <select name="subject_id">
+                    <option value="">Général</option>
+                    <option value="1">Mathématiques</option>
+                    <option value="2">Français</option>
+                    <option value="3">Sciences</option>
+                    <option value="4">Histoire-Géographie</option>
+                    <option value="5">Anglais</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Titre</label>
+                <input type="text" name="title" required placeholder="Titre de votre post">
+            </div>
+            <div class="form-group">
+                <label>Contenu</label>
+                <textarea name="content" required placeholder="Décrivez votre question, exercice ou discussion..." rows="6"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-outline" onclick="hideModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Publier</button>
+            </div>
+        </form>
+    `;
+
+    showModal(modalContent);
 }
+
+function handleNewPostSubmit(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const postData = Object.fromEntries(formData);
+    
+    if (forumManager) {
+        forumManager.createPost(postData);
+    }
+}
+
+function viewPost(postId) {
+    // Rediriger vers la vue détaillée du post
+    showNotification('Vue détaillée du post - Fonctionnalité en cours de développement', 'info');
+}
+
+function likePost(postId) {
+    if (!authManager.isLoggedIn()) {
+        showNotification('Connectez-vous pour aimer un post', 'error');
+        return;
+    }
+    showNotification('Post aimé !', 'success');
+}
+
+function replyToPost(postId) {
+    if (!authManager.isLoggedIn()) {
+        showNotification('Connectez-vous pour répondre', 'error');
+        return;
+    }
+    showNotification('Réponse - Fonctionnalité en cours de développement', 'info');
+}
+
+// Initialisation
+function initializeForum() {
+    if (!forumManager) {
+        forumManager = new ForumManager();
+    }
+    forumManager.loadPosts();
+
+    // Ajouter les event listeners pour les filtres
+    const searchInput = document.querySelector('.search-input');
+    const filterSelects = document.querySelectorAll('.filter-select');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchInput.searchTimeout);
+            searchInput.searchTimeout = setTimeout(() => {
+                forumManager.filterPosts();
+            }, 500);
+        });
+    }
+
+    filterSelects.forEach(select => {
+        select.addEventListener('change', () => {
+            forumManager.filterPosts();
+        });
+    });
+}
+
+// Exposition des fonctions
+window.showNewPost = showNewPost;
+window.viewPost = viewPost;
+window.likePost = likePost;
+window.replyToPost = replyToPost;
+window.handleNewPostSubmit = handleNewPostSubmit;

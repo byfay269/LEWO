@@ -1,3 +1,157 @@
+// Variables globales
+let currentUser = null;
+let currentSection = 'accueil';
+
+// Gestionnaire d'authentification
+class AuthManager {
+    constructor() {
+        this.token = localStorage.getItem('token');
+        this.currentUser = null;
+        this.initializeUser();
+    }
+
+    async initializeUser() {
+        if (this.token) {
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`
+                    }
+                });
+
+                if (response.ok) {
+                    this.currentUser = await response.json();
+                    this.updateAuthButtons();
+                } else {
+                    this.logout();
+                }
+            } catch (error) {
+                console.error('Erreur de vérification du token:', error);
+                this.logout();
+            }
+        }
+    }
+
+    updateAuthButtons() {
+        const authButtons = document.querySelector('.auth-buttons');
+        const adminLinks = document.querySelectorAll('.admin-only');
+        const authRequiredLinks = document.querySelectorAll('.auth-required');
+
+        if (this.currentUser) {
+            authButtons.innerHTML = `
+                <span class="user-info">👋 ${this.currentUser.first_name || this.currentUser.email}</span>
+                <button class="btn btn-outline" onclick="authManager.logout()">Déconnexion</button>
+            `;
+
+            // Afficher les liens admin si l'utilisateur est admin
+            adminLinks.forEach(link => {
+                link.style.display = this.currentUser.user_type === 'admin' ? 'block' : 'none';
+            });
+
+            // Afficher les liens authentifiés
+            authRequiredLinks.forEach(link => {
+                link.style.display = 'block';
+            });
+        } else {
+            authButtons.innerHTML = `
+                <button class="btn btn-outline" onclick="showLogin()">Connexion</button>
+                <button class="btn btn-primary" onclick="showRegister()">S'inscrire</button>
+            `;
+
+            // Masquer les liens admin et authentifiés
+            adminLinks.forEach(link => link.style.display = 'none');
+            authRequiredLinks.forEach(link => link.style.display = 'none');
+        }
+    }
+
+    async login(email, password) {
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.token = data.token;
+                this.currentUser = data.user;
+                localStorage.setItem('token', this.token);
+                this.updateAuthButtons();
+                hideModal();
+                showNotification('Connexion réussie !', 'success');
+                return true;
+            } else {
+                const error = await response.json();
+                showNotification(error.message, 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erreur de connexion:', error);
+            showNotification('Erreur de connexion', 'error');
+            return false;
+        }
+    }
+
+    async register(userData) {
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                showNotification('Inscription réussie ! Vous pouvez maintenant vous connecter.', 'success');
+                showLogin();
+                return true;
+            } else {
+                const error = await response.json();
+                showNotification(error.message, 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erreur d\'inscription:', error);
+            showNotification('Erreur d\'inscription', 'error');
+            return false;
+        }
+    }
+
+    logout() {
+        this.token = null;
+        this.currentUser = null;
+        localStorage.removeItem('token');
+        this.updateAuthButtons();
+        showNotification('Déconnexion réussie', 'success');
+        navigateToSection('accueil');
+    }
+
+    getToken() {
+        return this.token;
+    }
+
+    getCurrentUser() {
+        return this.currentUser;
+    }
+
+    isLoggedIn() {
+        return !!this.currentUser;
+    }
+
+    isAdmin() {
+        return this.currentUser && this.currentUser.user_type === 'admin';
+    }
+}
+
+// Instance globale du gestionnaire d'authentification
+let authManager;
+
+// Variables globales pour la navigation
+let currentSection = 'accueil';
 // Fichier principal - Variables globales et navigation
 let appCurrentSection = 'accueil';
 let currentExamType = 'bac';
@@ -74,6 +228,34 @@ function initializePageContent(section) {
     }
 }
 
+// Fonction d'initialisation spécifique à chaque page
+function initializePageSpecific(section) {
+    switch(section) {
+        case 'forum':
+            if (typeof initializeForum === 'function') {
+                initializeForum();
+            }
+            break;
+        case 'mentors':
+            if (typeof initializeMentors === 'function') {
+                initializeMentors();
+            }
+            break;
+        case 'annales':
+        case 'resultats':
+        case 'metiers':
+            if (typeof initializeContentPage === 'function') {
+                initializeContentPage(section);
+            }
+            break;
+        case 'profil':
+            if (typeof initializeProfile === 'function') {
+                initializeProfile();
+            }
+            break;
+    }
+}
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
     try {
@@ -104,6 +286,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Mettre à jour les boutons d'authentification
         authManager.updateAuthButtons();
+
+        // Initialiser la page spécifique
+        initializePageSpecific(currentSection);
 
         console.log('Application LEWO initialisée avec succès');
     } catch (error) {
@@ -847,7 +1032,7 @@ function loadMetiers() {
 }
 
 function createMetierHTML(metier) {
-    return `
+    return`
         <div class="metier-card" onclick="openMetierDetails(${metier.id})">
             <div class="metier-icon">${metier.icon}</div>
             <h3 class="metier-title">${metier.title}</h3>
@@ -1489,7 +1674,7 @@ async function loadAdminDashboard() {
                 'Authorization': 'Bearer ' + getToken()
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             const totalUsersEl = document.getElementById('totalUsers');
@@ -1738,7 +1923,7 @@ function editUser(userId) {
 }
 
 function deleteUser(userId) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')){
         const index = adminUsers.findIndex(u => u.id === userId);
         if (index > -1) {
             adminUsers.splice(index, 1);
@@ -1822,6 +2007,9 @@ function manageSubjects() {
 
 // Gestionnaires d'événements
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser le gestionnaire d'authentification
+    authManager = new AuthManager();
+
     // Navigation
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -1831,8 +2019,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Initialisation
-    authManager.updateAuthButtons();
+     // Initialisation
+     authManager.updateAuthButtons();
 
     // Charger les managers
     forumManager.init();
