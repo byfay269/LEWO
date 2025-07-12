@@ -1,16 +1,206 @@
+
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEWO - Mentorat aux Comores</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
-
 <body>
-  Hello world
-  <script src="script.js"></script>
-</body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">🎓 LEWO</h1>
+            <nav class="nav">
+                <a href="#accueil" class="nav-link active">Accueil</a>
+                <a href="#forum" class="nav-link">Forum</a>
+                <a href="#mentors" class="nav-link">Mentors</a>
+                <a href="#profil" class="nav-link">Mon Profil</a>
+            </nav>
+            <div class="auth-buttons">
+                <button class="btn btn-outline" onclick="showLogin()">Connexion</button>
+                <button class="btn btn-primary" onclick="showRegister()">S'inscrire</button>
+            </div>
+        </div>
+    </header>
 
+    <main class="main">
+        <!-- Section Accueil -->
+        <section id="accueil" class="section active">
+            <div class="hero">
+                <div class="container">
+                    <h2>Bienvenue sur LEWO</h2>
+                    <p class="hero-subtitle">La plateforme de mentorat pour les élèves et étudiants comoriens</p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary btn-large" onclick="showRegister()">
+                            Rejoindre la communauté
+                        </button>
+                        <button class="btn btn-outline btn-large" onclick="scrollToSection('forum')">
+                            Explorer le forum
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features">
+                <div class="container">
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">👥</div>
+                            <h3>Matching Automatique</h3>
+                            <p>Trouvez le mentor parfait selon votre niveau et vos matières</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">💬</div>
+                            <h3>Forum Collaboratif</h3>
+                            <p>Posez vos questions, partagez vos exercices et aidez vos pairs</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📈</div>
+                            <h3>Suivi des Progrès</h3>
+                            <p>Suivez votre évolution et celle de vos mentorés</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Forum -->
+        <section id="forum" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Forum Collaboratif</h2>
+                    <p>Aide tes pairs – poste un exercice ou rejoins la conversation !</p>
+                </div>
+
+                <div class="forum-controls">
+                    <div class="search-filters">
+                        <input type="text" placeholder="Rechercher dans le forum..." class="search-input">
+                        <select class="filter-select">
+                            <option>Toutes les matières</option>
+                            <option>Mathématiques</option>
+                            <option>Français</option>
+                            <option>Sciences</option>
+                            <option>Histoire-Géo</option>
+                        </select>
+                        <select class="filter-select">
+                            <option>Tous les niveaux</option>
+                            <option>Collège</option>
+                            <option>Lycée</option>
+                            <option>Université</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="showNewPost()">
+                        ➕ Nouveau post
+                    </button>
+                </div>
+
+                <div class="forum-posts" id="forumPosts">
+                    <!-- Les posts seront générés dynamiquement -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Mentors -->
+        <section id="mentors" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Nos Mentors</h2>
+                    <p>Découvrez les mentors disponibles dans votre domaine</p>
+                </div>
+                <div class="mentors-grid" id="mentorsGrid">
+                    <!-- Les mentors seront générés dynamiquement -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Profil -->
+        <section id="profil" class="section">
+            <div class="container">
+                <div class="profile-content" id="profileContent">
+                    <p class="text-center">Connectez-vous pour voir votre profil</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modales -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Connexion</h3>
+                <span class="close" onclick="closeModal('loginModal')">&times;</span>
+            </div>
+            <form class="auth-form">
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Mot de passe" required>
+                <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+            </form>
+            <p class="auth-switch">
+                Pas encore inscrit ? <a href="#" onclick="switchToRegister()">S'inscrire</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Inscription</h3>
+                <span class="close" onclick="closeModal('registerModal')">&times;</span>
+            </div>
+            <form class="auth-form">
+                <input type="text" placeholder="Prénom" required>
+                <input type="text" placeholder="Nom" required>
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Mot de passe" required>
+                <select required>
+                    <option value="">Vous êtes...</option>
+                    <option value="student">Élève/Étudiant</option>
+                    <option value="mentor">Mentor</option>
+                </select>
+                <select required>
+                    <option value="">Niveau d'études</option>
+                    <option value="college">Collège</option>
+                    <option value="lycee">Lycée</option>
+                    <option value="universite">Université</option>
+                    <option value="professionnel">Professionnel</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-full">S'inscrire</button>
+            </form>
+            <p class="auth-switch">
+                Déjà inscrit ? <a href="#" onclick="switchToLogin()">Se connecter</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="newPostModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Post</h3>
+                <span class="close" onclick="closeModal('newPostModal')">&times;</span>
+            </div>
+            <form class="post-form">
+                <input type="text" placeholder="Titre de votre post" required>
+                <select required>
+                    <option value="">Catégorie</option>
+                    <option value="question">Question</option>
+                    <option value="exercice">Exercice</option>
+                    <option value="examen">Examen</option>
+                    <option value="discussion">Discussion</option>
+                </select>
+                <select required>
+                    <option value="">Matière</option>
+                    <option value="maths">Mathématiques</option>
+                    <option value="francais">Français</option>
+                    <option value="sciences">Sciences</option>
+                    <option value="histoire">Histoire-Géo</option>
+                </select>
+                <textarea placeholder="Votre message..." rows="6" required></textarea>
+                <button type="submit" class="btn btn-primary btn-full">Publier</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
