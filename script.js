@@ -3,6 +3,8 @@
 // Script principal
 // ====================================
 
+// Variables globales
+let authManager;
 let currentSection = 'accueil';
 let isAuthenticated = false;
 let currentUser = null;
@@ -529,8 +531,8 @@ let authManager;
 
  et navigation
 
-// Données de démonstration
-const samplePosts = [
+// Variables globales pour les posts
+let samplePosts = [
     {
         id: 1,
         title: "Aide sur les équations du second degré",
@@ -1080,8 +1082,7 @@ function setupFormHandlers() {
         registerForm.addEventListener('submit', function(e) {
             e.preventDefault();
             handleRegister();
-        });
-    }
+        });    }
 
     // Formulaire de nouveau post
     const postForm = document.querySelector('#newPostModal .post-form');

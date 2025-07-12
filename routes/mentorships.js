@@ -1,76 +1,118 @@
+
 const express = require('express');
 const router = express.Router();
-const db = require('../config/database');
-const auth = require('../middleware/auth');
+const { query } = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
 
-// GET /api/mentorships - Récupérer tous les mentorships
-router.get('/', auth, async (req, res) => {
+// Obtenir tous les mentors disponibles
+router.get('/mentors', async (req, res) => {
     try {
-        const [mentorships] = await db.execute(`
-            SELECT m.*, 
-                   u1.name as mentor_name, u1.email as mentor_email,
-                   u2.name as mentee_name, u2.email as mentee_email
-            FROM mentorships m
-            JOIN users u1 ON m.mentor_id = u1.id
-            JOIN users u2 ON m.mentee_id = u2.id
-            WHERE m.mentor_id = ? OR m.mentee_id = ?
-            ORDER BY m.created_at DESC
-        `, [req.user.id, req.user.id]);
+        const { subject, level } = req.query;
+        let sql = `
+            SELECT u.id, u.first_name, u.last_name, u.email, u.bio, u.photo_url,
+                   u.education_level, u.institution, u.location,
+                   GROUP_CONCAT(s.name) as subjects
+            FROM users u
+            LEFT JOIN user_subjects us ON u.id = us.user_id
+            LEFT JOIN subjects s ON us.subject_id = s.id
+            WHERE u.user_type = 'mentor' AND u.status = 'active'
+        `;
+        const params = [];
 
-        res.json(mentorships);
-    } catch (error) {
-        console.error('Erreur lors de la récupération des mentorships:', error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-});
-
-// POST /api/mentorships - Créer une demande de mentorship
-router.post('/', auth, async (req, res) => {
-    try {
-        const { mentor_id, subject, message } = req.body;
-
-        if (!mentor_id || !subject) {
-            return res.status(400).json({ message: 'Mentor et sujet requis' });
+        if (subject) {
+            sql += ' AND s.id = ?';
+            params.push(subject);
         }
 
-        const [result] = await db.execute(`
-            INSERT INTO mentorships (mentor_id, mentee_id, subject, message, status)
-            VALUES (?, ?, ?, ?, 'pending')
-        `, [mentor_id, req.user.id, subject, message]);
+        if (level) {
+            sql += ' AND u.education_level = ?';
+            params.push(level);
+        }
 
-        res.status(201).json({ 
-            message: 'Demande de mentorship envoyée',
-            mentorship_id: result.insertId 
-        });
+        sql += ' GROUP BY u.id ORDER BY u.created_at DESC';
+
+        const result = await query(sql, params);
+        res.json(result.rows);
     } catch (error) {
-        console.error('Erreur lors de la création du mentorship:', error);
+        console.error('Erreur:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
 
-// PUT /api/mentorships/:id/status - Mettre à jour le statut d'un mentorship
-router.put('/:id/status', auth, async (req, res) => {
+// Créer une demande de mentorat
+router.post('/requests', authenticateToken, async (req, res) => {
     try {
+        const { mentor_id, subject_id, message, preferred_schedule } = req.body;
+        const student_id = req.user.id;
+
+        const sql = `
+            INSERT INTO mentorship_requests (student_id, mentor_id, subject_id, message, preferred_schedule)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+
+        await query(sql, [student_id, mentor_id, subject_id, message, preferred_schedule]);
+        res.status(201).json({ message: 'Demande de mentorat envoyée' });
+    } catch (error) {
+        console.error('Erreur:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// Obtenir les demandes de mentorat (pour un mentor)
+router.get('/requests', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userType = req.user.user_type;
+
+        let sql, params;
+
+        if (userType === 'mentor') {
+            sql = `
+                SELECT mr.*, u.first_name, u.last_name, u.email, s.name as subject_name
+                FROM mentorship_requests mr
+                JOIN users u ON mr.student_id = u.id
+                LEFT JOIN subjects s ON mr.subject_id = s.id
+                WHERE mr.mentor_id = ?
+                ORDER BY mr.created_at DESC
+            `;
+            params = [userId];
+        } else {
+            sql = `
+                SELECT mr.*, u.first_name, u.last_name, u.email, s.name as subject_name
+                FROM mentorship_requests mr
+                JOIN users u ON mr.mentor_id = u.id
+                LEFT JOIN subjects s ON mr.subject_id = s.id
+                WHERE mr.student_id = ?
+                ORDER BY mr.created_at DESC
+            `;
+            params = [userId];
+        }
+
+        const result = await query(sql, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Erreur:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// Accepter/refuser une demande de mentorat
+router.put('/requests/:id/status', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
         const { status } = req.body;
-        const mentorshipId = req.params.id;
+        const mentorId = req.user.id;
 
-        if (!['accepted', 'rejected', 'completed'].includes(status)) {
-            return res.status(400).json({ message: 'Statut invalide' });
-        }
-
-        const [result] = await db.execute(`
-            UPDATE mentorships 
+        const sql = `
+            UPDATE mentorship_requests 
             SET status = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND mentor_id = ?
-        `, [status, mentorshipId, req.user.id]);
+        `;
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Mentorship non trouvé' });
-        }
-
+        await query(sql, [status, id, mentorId]);
         res.json({ message: 'Statut mis à jour' });
     } catch (error) {
-        console.error('Erreur lors de la mise à jour du statut:', error);
+        console.error('Erreur:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
