@@ -1,51 +1,56 @@
 
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 
-// Configuration de la base de données
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+// Configuration de la base de données MySQL
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'lewo_db',
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 20,
+  queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+  charset: 'utf8mb4'
 });
 
 // Test de connexion
-pool.on('connect', () => {
-  console.log('✅ Connexion à PostgreSQL établie');
-});
-
-pool.on('error', (err) => {
-  console.error('❌ Erreur de connexion PostgreSQL:', err);
-});
+pool.getConnection()
+  .then(connection => {
+    console.log('✅ Connexion à MySQL établie');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('❌ Erreur de connexion MySQL:', err);
+  });
 
 // Fonction utilitaire pour exécuter des requêtes
-const query = async (text, params) => {
-  const client = await pool.connect();
+const query = async (sql, params) => {
   try {
-    const result = await client.query(text, params);
-    return result;
+    const [results] = await pool.execute(sql, params);
+    return { rows: results };
   } catch (error) {
     console.error('Erreur de requête:', error);
     throw error;
-  } finally {
-    client.release();
   }
 };
 
 // Fonction pour les transactions
 const transaction = async (callback) => {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
-    await client.query('BEGIN');
-    const result = await callback(client);
-    await client.query('COMMIT');
+    await connection.beginTransaction();
+    const result = await callback(connection);
+    await connection.commit();
     return result;
   } catch (error) {
-    await client.query('ROLLBACK');
+    await connection.rollback();
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 };
 
