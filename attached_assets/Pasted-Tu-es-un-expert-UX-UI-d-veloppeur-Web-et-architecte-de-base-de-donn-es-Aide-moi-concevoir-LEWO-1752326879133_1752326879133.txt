@@ -1,0 +1,36 @@
+Tu es un expert UX/UI, développeur Web et architecte de base de données. Aide-moi à concevoir **LEWO**, un site de mentorat pour élèves et étudiants aux Comores. La base de données sera **locale** et je veux que tu me fournisses **toutes les requêtes SQL** pour la construire (CREATE, DROP, INSERT…).
+
+1. 🎓 **Fonctionnalités globales**
+   - **Inscription et profils** (élèves/mentors)
+   - **Matching automatic** basé sur niveau, matières, intérêts
+   - **Forum collaboratif** : espace visible par tous les inscrits, où chacun peut :
+     - Poster des exercices/examens  
+     - Répondre, commenter, poser des questions et recevoir des notifications
+     - Filtrer par sujet, groupe de niveau, ou mot‑clé
+   - Chat temps réel, gestion de sessions, suivi des progrès
+
+2. 📚 **Forum interactif**
+   - Modération et signalement
+   - Organisation en catégories (niveaux, matières)
+   - Notifications aux participants : nouveaux posts, réponses
+   - Bonnes pratiques UX : laisser voir les réponses avant de poster, prompts ouverts, petits groupes pour approfondir :contentReference[oaicite:1]{index=1}
+
+3. 🗃️ **Base de données locale (MySQL ou PostgreSQL)**
+   - Choix entre MySQL/PostgreSQL avec justification
+   - Requêtes SQL complètes :
+     - `DROP TABLE IF EXISTS` dans l’ordre correct
+     - `CREATE DATABASE`, `CREATE TABLE` pour : users, profiles, mentorships, posts, comments, forums, categories, messages, sessions, progress
+     - Clés primaires/étrangères, index, contraintes (NOT NULL, UNIQUE…)
+     - INSERT exemples
+     - Suggestions de vues/procédure : ex. `GET_FORUM_THREADS`, `MATCH_MENTEES_FOR_MENTOR`
+     - Index optimisés pour forum (recherche par mot-clé, tri par date)
+
+4. 🔄 **Workflow attendu**
+   - Script SQL autonome prêt à exécuter localement
+   - ERD textuel décrivant tables et relations
+
+5. 🎨 **Contexte UX**
+   - Forum motivant, accessible, mobile‑friendly
+   - Ton communautaire : « Aide tes pairs – poste un exercice ou rejoins la conversation ! »
+
+**Merci** de me fournir **le script SQL intégral** avec ERD et explications, en respectant les bonnes pratiques de forum collaboratif.  
